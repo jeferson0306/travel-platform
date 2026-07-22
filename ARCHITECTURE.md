@@ -95,4 +95,6 @@ This document reflects the target architecture. As of the current milestone
 (see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
 (Phase 2, M8), `flight-service` and `hotel-service` (Phase 2, M9) are
 implemented; `payment-service`, `currency-service`, `notification-service`,
-`search-service` and `gateway` are still planned.
+`search-service` and `gateway` are still planned. `flight-service` and
+`hotel-service` also consume `booking-created` (M10) - the platform's first
+real cross-service event-driven integration, not just publish-and-forget.

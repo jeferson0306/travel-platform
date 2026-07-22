@@ -26,5 +26,10 @@ create_topic() {
 create_topic "booking-created"
 create_topic "booking-cancelled"
 
+# flight-service / hotel-service consumer groups on booking-created (ROADMAP M10) - DLQ per
+# consumer group, see docs/adr/0004-use-kafka-for-event-driven-communication.md's M10 addendum.
+create_topic "booking-created.flight-inventory.dlq"
+create_topic "booking-created.hotel-inventory.dlq"
+
 echo "Topics ready:"
 "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" --list

@@ -39,3 +39,11 @@ and this project uses milestone-based versioning as defined in
   approach's verification path was found unreliable in the installed
   SmallRye JWT version. `ci.yml`'s per-service matrix now covers all four
   services.
+- `booking-service`'s `BookingReference` is now structured (`itemType`,
+  `itemId`, `quantity`) instead of a freeform string, now that
+  flight-service/hotel-service exist to point at. `flight-service` and
+  `hotel-service` each consume `booking-created` (own consumer group) and
+  atomically decrement inventory - idempotent (`processed_bookings`), with
+  a Mongo-backed retry queue and exponential backoff, moving to a
+  dead-letter Kafka topic per consumer group after too many attempts (M10,
+  ADR 0004 addendum).

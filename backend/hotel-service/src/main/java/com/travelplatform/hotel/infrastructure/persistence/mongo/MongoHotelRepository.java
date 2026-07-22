@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Updates;
 import com.travelplatform.hotel.application.port.out.HotelRepository;
 import com.travelplatform.hotel.domain.hotel.City;
 import com.travelplatform.hotel.domain.hotel.Hotel;
@@ -48,5 +49,15 @@ public class MongoHotelRepository implements HotelRepository {
             results.add(HotelDocumentMapper.toDomain(document));
         }
         return results;
+    }
+
+    @Override
+    public boolean tryReserve(HotelId id, int quantity) {
+        var filter =
+                Filters.and(
+                        Filters.eq("_id", id.value().toString()),
+                        Filters.gte("availableRooms", quantity));
+        var result = hotels.findOneAndUpdate(filter, Updates.inc("availableRooms", -quantity));
+        return result != null;
     }
 }

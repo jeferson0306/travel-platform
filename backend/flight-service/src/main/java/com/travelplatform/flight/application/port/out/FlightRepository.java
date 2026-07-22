@@ -13,4 +13,11 @@ public interface FlightRepository {
     Optional<Flight> findById(FlightId id);
 
     List<Flight> search(AirportCode origin, AirportCode destination);
+
+    /**
+     * Atomically decrements {@code availableSeats} by {@code quantity} if and only if enough seats
+     * are available. Returns false (no-op) if the flight does not exist or has insufficient seats -
+     * the caller decides what that means (retry, dead-letter, ...).
+     */
+    boolean tryReserve(FlightId id, int quantity);
 }

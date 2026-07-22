@@ -9,6 +9,7 @@ import com.travelplatform.booking.application.port.out.BookingRepository;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingNotFoundException;
 import com.travelplatform.booking.domain.booking.BookingReference;
+import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.TravelerId;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,7 +35,8 @@ class CancelBookingServiceTest {
     void cancelsAnExistingBooking() {
         var booking =
                 Booking.create(
-                        new TravelerId(UUID.randomUUID()), new BookingReference("hotel-lisbon"));
+                        new TravelerId(UUID.randomUUID()),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 
         service.cancel(new CancelBookingCommand(booking.id().value().toString()));

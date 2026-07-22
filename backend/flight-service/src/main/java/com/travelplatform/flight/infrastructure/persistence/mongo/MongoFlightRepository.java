@@ -4,6 +4,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Updates;
 import com.travelplatform.flight.application.port.out.FlightRepository;
 import com.travelplatform.flight.domain.flight.AirportCode;
 import com.travelplatform.flight.domain.flight.Flight;
@@ -52,5 +53,15 @@ public class MongoFlightRepository implements FlightRepository {
             results.add(FlightDocumentMapper.toDomain(document));
         }
         return results;
+    }
+
+    @Override
+    public boolean tryReserve(FlightId id, int quantity) {
+        var filter =
+                Filters.and(
+                        Filters.eq("_id", id.value().toString()),
+                        Filters.gte("availableSeats", quantity));
+        var result = flights.findOneAndUpdate(filter, Updates.inc("availableSeats", -quantity));
+        return result != null;
     }
 }

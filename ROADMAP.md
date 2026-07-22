@@ -35,8 +35,11 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       models, consuming shared identity/auth (JWT issued by
       `identity-service`, RS256-verified - role-protected inventory
       creation, public search).
-- [ ] **M10 — Event-driven integration**: consumer groups, retry topics,
-      dead-letter queues across the services built so far.
+- [x] **M10 — Event-driven integration**: `flight-service` and
+      `hotel-service` consume `booking-created` (own consumer groups) and
+      decrement inventory - idempotent, with a Mongo-backed retry queue and
+      a dead-letter Kafka topic per consumer group once retries are
+      exhausted (ADR 0004 addendum).
 
 ## Phase 3 — Cross-cutting services
 

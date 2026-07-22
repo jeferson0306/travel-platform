@@ -30,7 +30,10 @@ class CreateBookingServiceTest {
     void createsAndPersistsABooking() {
         var travelerId = UUID.randomUUID().toString();
 
-        var bookingId = service.create(new CreateBookingCommand(travelerId, "flight-LIS-GRU"));
+        var bookingId =
+                service.create(
+                        new CreateBookingCommand(
+                                travelerId, "FLIGHT", UUID.randomUUID().toString(), 2));
 
         assertThat(bookingId).isNotNull();
         verify(bookingRepository).save(any(Booking.class));
