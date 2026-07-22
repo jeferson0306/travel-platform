@@ -49,4 +49,9 @@ never invents its own code or status.
 - `NO_TOKEN` / `INVALID_TOKEN` / `FORBIDDEN` apply once a service starts
   validating JWTs issued by `identity-service` (gateway and any service with
   protected endpoints) - see
-  [docs/adr/0006-rbac-roles.md](../adr/0006-rbac-roles.md).
+  [docs/adr/0006-rbac-roles.md](../adr/0006-rbac-roles.md). One caveat: a
+  request with _no_ `Authorization` header at all is rejected by Quarkus's
+  HTTP auth layer before reaching this canonical body - only a
+  present-but-invalid token or an insufficient role gets the full
+  `{error, message, details}` shape. Both cases still return the correct
+  status code.

@@ -92,6 +92,7 @@ shared logging adapter every service uses (introduced in Phase 1).
 ## Status
 
 This document reflects the target architecture. As of the current milestone
-(see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1) and
-`booking-service` (Phase 2, M8) are implemented; the remaining services in
-the service map above are still planned.
+(see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
+(Phase 2, M8), `flight-service` and `hotel-service` (Phase 2, M9) are
+implemented; `payment-service`, `currency-service`, `notification-service`,
+`search-service` and `gateway` are still planned.

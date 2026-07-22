@@ -8,6 +8,16 @@
 *.p12
 *.jks
 !**/src/**/*.jks
+# RS256 dev/test JWT fixture keypair - see docs/adr/0006-rbac-roles.md and
+# .gitleaks.toml (which allowlists these same paths). Not a production
+# secret: identity-service holds the real private key, every other
+# service only needs the (non-sensitive) public key, and a service's
+# src/test/resources copy of the private key exists only to mint
+# synthetic tokens in tests without running identity-service.
+!backend/identity-service/src/main/resources/privateKey.pem
+!backend/identity-service/src/main/resources/publicKey.pem
+!backend/*-service/src/main/resources/publicKey.pem
+!backend/*-service/src/test/resources/privateKey.pem
 secrets/
 **/secrets/**
 *.tfvars

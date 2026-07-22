@@ -31,8 +31,10 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 - [x] **M8 — booking-service**: reservation lifecycle, outbox pattern, first
       Kafka events (`booking-created`, `booking-cancelled`).
-- [ ] **M9 — flight-service & hotel-service**: inventory/search domain
-      models, consuming shared identity/auth.
+- [x] **M9 — flight-service & hotel-service**: inventory/search domain
+      models, consuming shared identity/auth (JWT issued by
+      `identity-service`, RS256-verified - role-protected inventory
+      creation, public search).
 - [ ] **M10 — Event-driven integration**: consumer groups, retry topics,
       dead-letter queues across the services built so far.
 

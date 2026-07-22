@@ -62,9 +62,12 @@ See `src/main/resources/application.yml`. Notable environment variables
 
 - `MONGO_URI` - MongoDB connection string (only read in `%prod`; local/dev
   and tests use Dev Services or the Docker Compose instance).
-- `JWT_SECRET` - HMAC secret used to sign issued tokens. The committed
-  default is an insecure, clearly-labeled local-only fallback - every real
-  environment must override it.
+
+Tokens are signed RS256 with `src/main/resources/privateKey.pem` (a
+committed dev/test fixture, not a production secret - see
+[docs/adr/0006-rbac-roles.md](../../docs/adr/0006-rbac-roles.md)). A real
+deployment mounts its own key via the same
+`smallrye.jwt.sign.key.location` property.
 
 ## Packaging
 

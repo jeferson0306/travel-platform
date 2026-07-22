@@ -25,9 +25,16 @@ identity:
   jwt:
     issuer: travel-platform-identity
     ttl-seconds: 3600
-    # Local/dev default only - never a real secret. Overridden by JWT_SECRET in every
-    # real environment. See .env.example and SECURITY.md.
-    secret: ${JWT_SECRET:local-dev-only-insecure-default-secret-do-not-use-in-prod}
+
+smallrye:
+  jwt:
+    sign:
+      # RSA private key, RS256 (the smallrye-jwt default algorithm) - identity-service
+      # is the only service that ever holds this. This checked-in key is a
+      # dev/test fixture, not a production secret (see SECURITY.md) - a real
+      # deployment mounts its own key material via this same property.
+      key:
+        location: privateKey.pem
 
 "%dev":
   quarkus:

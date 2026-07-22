@@ -1,0 +1,48 @@
+quarkus:
+  application:
+    name: hotel-service
+  http:
+    port: 8084
+  mongodb:
+    database: hotel
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    mongodb:
+      database: hotel-test
+    log:
+      console:
+        json:
+          enabled: false
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}

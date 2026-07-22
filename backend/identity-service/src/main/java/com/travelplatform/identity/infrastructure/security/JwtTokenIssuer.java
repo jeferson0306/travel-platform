@@ -7,20 +7,23 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Duration;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/**
+ * Signs with the RSA private key configured via {@code smallrye.jwt.sign.key.location}
+ * (application.yml) - RS256, not a shared secret, so only identity-service ever holds signing
+ * material. Every other service verifies with the public key alone. See
+ * docs/adr/0006-rbac-roles.md.
+ */
 @ApplicationScoped
 public class JwtTokenIssuer implements TokenIssuer {
 
     private final String issuer;
-    private final String secret;
     private final Duration ttl;
 
     public JwtTokenIssuer(
             @ConfigProperty(name = "identity.jwt.issuer") String issuer,
-            @ConfigProperty(name = "identity.jwt.secret") String secret,
             @ConfigProperty(name = "identity.jwt.ttl-seconds", defaultValue = "3600")
                     long ttlSeconds) {
         this.issuer = issuer;
-        this.secret = secret;
         this.ttl = Duration.ofSeconds(ttlSeconds);
     }
 
@@ -32,8 +35,7 @@ public class JwtTokenIssuer implements TokenIssuer {
                         .upn(user.email().value())
                         .groups(user.role().name())
                         .expiresIn(ttl)
-                        .jws()
-                        .signWithSecret(secret);
+                        .sign();
         return new IssuedToken(token, ttl.toSeconds());
     }
 }

@@ -14,6 +14,14 @@ paths = [
   '''.*\.env\.example$''',
   '''.*\.tfvars\.example$''',
   '''docs/.*''',
+  # RS256 dev/test JWT fixture keypair - see docs/adr/0006-rbac-roles.md.
+  # identity-service holds the private key "for real" (it's the only
+  # service that signs); other services' copies under src/test/resources
+  # exist only to mint synthetic tokens in tests without running
+  # identity-service. Never used outside local dev/CI; a real deployment
+  # supplies its own key via smallrye.jwt.sign.key.location.
+  '''backend/identity-service/src/main/resources/privateKey\.pem$''',
+  '''backend/[a-z-]+-service/src/test/resources/privateKey\.pem$''',
 ]
 
 [[rules]]
