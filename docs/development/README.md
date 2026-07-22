@@ -2,7 +2,8 @@
 
 Per-service "how to run, test, and extend this service" guides, the shared
 service template new services are scaffolded from, and CI pipeline
-documentation.
+documentation. See [testing.md](testing.md) for the test pyramid, naming
+conventions, and the coverage/mutation-testing gates (ROADMAP M5).
 
 ## CI pipeline (`.github/workflows/ci.yml`)
 

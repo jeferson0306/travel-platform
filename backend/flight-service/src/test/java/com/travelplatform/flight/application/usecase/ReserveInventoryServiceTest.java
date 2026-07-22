@@ -8,12 +8,14 @@ import com.travelplatform.flight.application.port.out.FlightRepository;
 import com.travelplatform.flight.domain.flight.FlightId;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ReserveInventoryService")
 class ReserveInventoryServiceTest {
 
     @Mock FlightRepository flightRepository;

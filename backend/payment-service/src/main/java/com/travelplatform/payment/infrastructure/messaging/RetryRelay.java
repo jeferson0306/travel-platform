@@ -3,6 +3,7 @@ package com.travelplatform.payment.infrastructure.messaging;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.Updates;
 import com.travelplatform.payment.application.port.in.AuthorizePaymentUseCase;
 import com.travelplatform.payment.application.port.in.AuthorizePaymentUseCase.AuthorizePaymentCommand;
@@ -114,10 +115,17 @@ public class RetryRelay {
 
     private void deadLetter(Document task, int attempts, String action) {
         var bookingId = task.getString("bookingId");
-        deadLetters.insertOne(
+        var deadLetterDocument =
                 new Document(task)
                         .append("attempts", attempts)
-                        .append("deadLetteredAt", Date.from(Instant.now())));
+                        .append("deadLetteredAt", Date.from(Instant.now()));
+        // Upsert, not insert: the real @Scheduled trigger and a manual/direct relay() call could
+        // race on the same overdue task (same source _id) - an upsert makes that harmless instead
+        // of a duplicate-key crash.
+        deadLetters.replaceOne(
+                Filters.eq("_id", deadLetterDocument.getString("_id")),
+                deadLetterDocument,
+                new ReplaceOptions().upsert(true));
         LOG.error(
                 "Booking "
                         + bookingId

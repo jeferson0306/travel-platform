@@ -2,11 +2,14 @@ package com.travelplatform.identity.domain.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("User")
 class UserTest {
 
     @Test
+    @DisplayName("register() creates an active USER and raises UserRegistered")
     void registerCreatesActiveUserAndRaisesDomainEvent() {
         var email = new Email("traveler@example.com");
         var password = new HashedPassword("hashed-value");
@@ -28,6 +31,7 @@ class UserTest {
     }
 
     @Test
+    @DisplayName("pullDomainEvents() clears the list after the first read")
     void pullDomainEventsClearsAfterFirstRead() {
         var user = User.register(new Email("traveler@example.com"), new HashedPassword("hash"));
 
@@ -37,6 +41,7 @@ class UserTest {
     }
 
     @Test
+    @DisplayName("reconstitute() never raises a domain event")
     void reconstitutedUserRaisesNoDomainEvents() {
         var user =
                 User.reconstitute(

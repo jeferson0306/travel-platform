@@ -13,6 +13,7 @@ import io.smallrye.jwt.build.Jwt;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
  * - see flight-service's equivalent test for the full rationale.
  */
 @QuarkusTest
+@DisplayName("PaymentResource")
 class PaymentResourceTest {
 
     @Inject MongoClient mongoClient;

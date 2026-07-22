@@ -6,12 +6,14 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * Enforces the layering described in ARCHITECTURE.md: dependencies only ever point inward, and the
  * domain never depends on a framework type.
  */
+@DisplayName("Hexagonal architecture rules")
 class HexagonalArchitectureTest {
 
     private static final JavaClasses CLASSES =

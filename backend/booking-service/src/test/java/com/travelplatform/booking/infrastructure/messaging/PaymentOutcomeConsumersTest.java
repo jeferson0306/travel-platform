@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
  * accordingly - the second leg of the saga documented in docs/adr/0010-payment-saga.md.
  */
 @QuarkusTest
+@DisplayName("Payment outcome consumers")
 class PaymentOutcomeConsumersTest {
 
     @Inject @Any InMemoryConnector connector;
@@ -53,7 +55,18 @@ class PaymentOutcomeConsumersTest {
                 .formatted(UUID.randomUUID(), bookingId, Instant.now());
     }
 
+    private String bookingStatus(String bookingId) {
+        var doc =
+                mongoClient
+                        .getDatabase("booking")
+                        .getCollection("bookings")
+                        .find(Filters.eq("_id", bookingId))
+                        .first();
+        return doc == null ? null : doc.getString("status");
+    }
+
     @Test
+    @DisplayName("payment-authorized confirms a pending booking")
     void paymentAuthorizedConfirmsTheBooking() {
         var bookingId = createBooking();
         InMemorySource<String> source = connector.source("payment-authorized");
@@ -61,20 +74,11 @@ class PaymentOutcomeConsumersTest {
         source.send(paymentOutcomePayload(bookingId));
 
         await().atMost(Duration.ofSeconds(10))
-                .untilAsserted(
-                        () -> {
-                            var doc =
-                                    mongoClient
-                                            .getDatabase("booking")
-                                            .getCollection("bookings")
-                                            .find(Filters.eq("_id", bookingId))
-                                            .first();
-                            assertThat(doc).isNotNull();
-                            assertThat(doc.getString("status")).isEqualTo("CONFIRMED");
-                        });
+                .untilAsserted(() -> assertThat(bookingStatus(bookingId)).isEqualTo("CONFIRMED"));
     }
 
     @Test
+    @DisplayName("payment-failed cancels the booking (compensating transaction)")
     void paymentFailedCancelsTheBooking() {
         var bookingId = createBooking();
         InMemorySource<String> source = connector.source("payment-failed");
@@ -82,20 +86,11 @@ class PaymentOutcomeConsumersTest {
         source.send(paymentOutcomePayload(bookingId));
 
         await().atMost(Duration.ofSeconds(10))
-                .untilAsserted(
-                        () -> {
-                            var doc =
-                                    mongoClient
-                                            .getDatabase("booking")
-                                            .getCollection("bookings")
-                                            .find(Filters.eq("_id", bookingId))
-                                            .first();
-                            assertThat(doc).isNotNull();
-                            assertThat(doc.getString("status")).isEqualTo("CANCELLED");
-                        });
+                .untilAsserted(() -> assertThat(bookingStatus(bookingId)).isEqualTo("CANCELLED"));
     }
 
     @Test
+    @DisplayName("a duplicate payment-authorized delivery is idempotent")
     void duplicatePaymentAuthorizedIsIdempotent() {
         var bookingId = createBooking();
         InMemorySource<String> source = connector.source("payment-authorized");
@@ -104,15 +99,35 @@ class PaymentOutcomeConsumersTest {
         source.send(paymentOutcomePayload(bookingId));
 
         await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(bookingStatus(bookingId)).isEqualTo("CONFIRMED"));
+    }
+
+    @Test
+    @DisplayName("a duplicate payment-failed delivery is idempotent")
+    void duplicatePaymentFailedIsIdempotent() {
+        var bookingId = createBooking();
+        InMemorySource<String> source = connector.source("payment-failed");
+
+        source.send(paymentOutcomePayload(bookingId));
+        source.send(paymentOutcomePayload(bookingId));
+
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(bookingStatus(bookingId)).isEqualTo("CANCELLED"));
+    }
+
+    @Test
+    @DisplayName(
+            "drops a malformed payment-authorized payload instead of scheduling a retry for it")
+    void dropsAMalformedPaymentAuthorizedPayload() {
+        InMemorySource<String> source = connector.source("payment-authorized");
+        var retryTasks = mongoClient.getDatabase("booking").getCollection("retry_tasks");
+        var countBefore = retryTasks.countDocuments();
+
+        source.send("{ this is not valid json");
+
+        await().pollDelay(Duration.ofSeconds(1))
+                .atMost(Duration.ofSeconds(5))
                 .untilAsserted(
-                        () -> {
-                            var doc =
-                                    mongoClient
-                                            .getDatabase("booking")
-                                            .getCollection("bookings")
-                                            .find(Filters.eq("_id", bookingId))
-                                            .first();
-                            assertThat(doc.getString("status")).isEqualTo("CONFIRMED");
-                        });
+                        () -> assertThat(retryTasks.countDocuments()).isEqualTo(countBefore));
     }
 }

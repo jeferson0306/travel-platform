@@ -18,12 +18,14 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("RefundPaymentService")
 class RefundPaymentServiceTest {
 
     private static final Money AMOUNT = new Money(new BigDecimal("450.00"), "EUR");
@@ -39,6 +41,7 @@ class RefundPaymentServiceTest {
     }
 
     @Test
+    @DisplayName("refunds an authorized payment via the gateway and persists the new status")
     void refundsAnAuthorizedPayment() {
         var bookingId = new BookingId(UUID.randomUUID());
         var payment = Payment.authorize(bookingId, AMOUNT);
@@ -51,6 +54,7 @@ class RefundPaymentServiceTest {
     }
 
     @Test
+    @DisplayName("is a no-op for a payment that was never authorized (declined)")
     void isANoOpForAFailedPayment() {
         var bookingId = new BookingId(UUID.randomUUID());
         var payment = Payment.fail(bookingId, AMOUNT, "declined");
@@ -63,6 +67,22 @@ class RefundPaymentServiceTest {
     }
 
     @Test
+    @DisplayName(
+            "is a no-op for a payment that was already refunded (idempotent double-cancellation)")
+    void isANoOpForAnAlreadyRefundedPayment() {
+        var bookingId = new BookingId(UUID.randomUUID());
+        var payment = Payment.authorize(bookingId, AMOUNT);
+        payment.refund();
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+
+        service.refund(new RefundPaymentCommand(bookingId.value().toString()));
+
+        verify(paymentGateway, never()).refund(any(PaymentId.class), any(Money.class));
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("rejects refunding a booking with no payment on record")
     void rejectsRefundingAnUnknownBooking() {
         var bookingId = UUID.randomUUID().toString();
         when(paymentRepository.findByBookingId(BookingId.of(bookingId)))

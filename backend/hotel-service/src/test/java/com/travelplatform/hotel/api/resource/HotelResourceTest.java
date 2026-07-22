@@ -9,6 +9,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.jwt.build.Jwt;
 import java.math.BigDecimal;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * flight-service's equivalent test for the full rationale.
  */
 @QuarkusTest
+@DisplayName("HotelResource")
 class HotelResourceTest {
 
     private String tokenWithRole(String role) {

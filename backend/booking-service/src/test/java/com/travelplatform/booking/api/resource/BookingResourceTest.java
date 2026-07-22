@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
  * the in-memory connector instead of a real broker, see application.yml's %test profile.
  */
 @QuarkusTest
+@DisplayName("BookingResource")
 class BookingResourceTest {
 
     @Inject @Any InMemoryConnector connector;

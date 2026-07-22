@@ -17,9 +17,14 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 - [x] **M4 — Identity domain core**: user registration, authentication, JWT
       issuance, hexagonal package structure.
-- [ ] **M5 — Test pyramid on identity-service**: unit, integration
-      (Testcontainers), architecture tests (ArchUnit) done as part of M4;
-      still open: mutation testing (PIT) and a JaCoCo coverage gate in CI.
+- [x] **M5 — Test pyramid close-out, all five services**: gap-filled unit,
+      integration and architecture tests (error paths, RBAC, retry/DLQ
+      backoff and dead-lettering, idempotency), JUnit 5 `@DisplayName`
+      throughout, JaCoCo coverage gate in the parent POM. Scoped to all
+      five services, not just identity-service, once there were five to
+      cover consistently. Mutation testing (PIT) is configured but
+      currently blocked by an upstream Java 25 bytecode incompatibility -
+      see docs/development/testing.md.
 - [x] **M6 — Observability baseline**: structured JSON logs with
       trace/span/correlation IDs, health checks, metrics exposed.
 - [x] **M7 — CI pipeline v1**: lint, test, security scan, Docker build,

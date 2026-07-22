@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.travelplatform.booking.application.port.in.CancelBookingUseCase.CancelBookingCommand;
+import com.travelplatform.booking.application.port.in.ConfirmBookingUseCase.ConfirmBookingCommand;
 import com.travelplatform.booking.application.port.out.BookingRepository;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
@@ -24,40 +24,40 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CancelBookingService")
-class CancelBookingServiceTest {
+@DisplayName("ConfirmBookingService")
+class ConfirmBookingServiceTest {
 
     @Mock BookingRepository bookingRepository;
 
-    CancelBookingService service;
+    ConfirmBookingService service;
 
     @BeforeEach
     void setUp() {
-        service = new CancelBookingService(bookingRepository);
+        service = new ConfirmBookingService(bookingRepository);
     }
 
     @Test
-    @DisplayName("cancels an existing booking")
-    void cancelsAnExistingBooking() {
+    @DisplayName("confirms an existing pending booking")
+    void confirmsAnExistingBooking() {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
-                        new Money(new BigDecimal("95.00"), "EUR"));
+                        new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 1),
+                        new Money(new BigDecimal("450.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 
-        service.cancel(new CancelBookingCommand(booking.id().value().toString()));
+        service.confirm(new ConfirmBookingCommand(booking.id().value().toString()));
 
         verify(bookingRepository).save(booking);
     }
 
     @Test
-    @DisplayName("rejects cancelling a booking that does not exist")
-    void rejectsCancellingAnUnknownBooking() {
+    @DisplayName("rejects confirming a booking that does not exist")
+    void rejectsConfirmingAnUnknownBooking() {
         var id = UUID.randomUUID().toString();
         when(bookingRepository.findById(BookingId.of(id))).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.cancel(new CancelBookingCommand(id)))
+        assertThatThrownBy(() -> service.confirm(new ConfirmBookingCommand(id)))
                 .isInstanceOf(BookingNotFoundException.class);
     }
 }
