@@ -23,3 +23,7 @@ and this project uses milestone-based versioning as defined in
 - `identity-service`: structured JSON request logs (correlationId,
   requestId, userId, method, uri, status, durationMs), health/readiness/
   liveness endpoints, Prometheus metrics (M6).
+- CI pipeline (`ci.yml`): test suite, secret scan (gitleaks), dependency
+  scan (Trivy), Dockerfile lint (hadolint), Docker image build and scan,
+  fail-fast ordered (M7). `identity-service`'s Dockerfile.jvm base image
+  fixed to a Java 25 runtime (the generated default targeted Java 21).

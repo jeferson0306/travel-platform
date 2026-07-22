@@ -1,0 +1,104 @@
+name: CI
+
+# Fail-fast ordering: cheap, no-build checks (secrets, dependency
+# vulnerabilities, Dockerfile lint) run immediately in parallel with the
+# test suite. The Docker image is only built and scanned once tests pass -
+# no point paying for a build/scan on code that doesn't even work.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+env:
+  JAVA_VERSION: "25"
+
+jobs:
+  test:
+    name: Build and test (identity-service)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "maven"
+      - name: Run unit, integration and architecture tests
+        run: mvn -B -f backend/pom.xml -pl identity-service -am test
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+      - name: Scan
+        run: gitleaks detect --source . --config .gitleaks.toml --redact -v
+
+  dependency-scan:
+    name: Dependency scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "backend/identity-service"
+          severity: "CRITICAL,HIGH"
+          # Report-only until a reviewed .trivyignore baseline exists for
+          # this service - see docs/development for the plan to flip this
+          # to exit-code 1 once that baseline is in place.
+          exit-code: "0"
+
+  dockerfile-lint:
+    name: Dockerfile lint (hadolint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/identity-service/src/main/docker/Dockerfile.jvm
+          failure-threshold: error
+
+  docker:
+    name: Docker build and image scan
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "maven"
+      - name: Package (tests already ran in the test job)
+        run: mvn -B -f backend/pom.xml -pl identity-service -am package -DskipTests
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/identity-service
+          file: backend/identity-service/src/main/docker/Dockerfile.jvm
+          push: false
+          load: true
+          tags: identity-service:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: identity-service:ci
+          scan-type: "image"
+          severity: "CRITICAL,HIGH"
+          # Same report-only rationale as the dependency-scan job above.
+          exit-code: "0"
