@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import com.travelplatform.booking.application.port.in.CreateBookingUseCase.CreateBookingCommand;
 import com.travelplatform.booking.application.port.out.BookingRepository;
+import com.travelplatform.booking.application.port.out.ReceiptStorage;
 import com.travelplatform.booking.domain.booking.Booking;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,12 +19,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CreateBookingServiceTest {
 
     @Mock BookingRepository bookingRepository;
+    @Mock ReceiptStorage receiptStorage;
 
     CreateBookingService service;
 
     @BeforeEach
     void setUp() {
-        service = new CreateBookingService(bookingRepository);
+        service = new CreateBookingService(bookingRepository, receiptStorage);
     }
 
     @Test
@@ -37,5 +39,6 @@ class CreateBookingServiceTest {
 
         assertThat(bookingId).isNotNull();
         verify(bookingRepository).save(any(Booking.class));
+        verify(receiptStorage).store(any(Booking.class));
     }
 }

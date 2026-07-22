@@ -2,6 +2,7 @@ package com.travelplatform.booking.application.usecase;
 
 import com.travelplatform.booking.application.port.in.CreateBookingUseCase;
 import com.travelplatform.booking.application.port.out.BookingRepository;
+import com.travelplatform.booking.application.port.out.ReceiptStorage;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingReference;
@@ -13,9 +14,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class CreateBookingService implements CreateBookingUseCase {
 
     private final BookingRepository bookingRepository;
+    private final ReceiptStorage receiptStorage;
 
-    public CreateBookingService(BookingRepository bookingRepository) {
+    public CreateBookingService(
+            BookingRepository bookingRepository, ReceiptStorage receiptStorage) {
         this.bookingRepository = bookingRepository;
+        this.receiptStorage = receiptStorage;
     }
 
     @Override
@@ -28,6 +32,9 @@ public class CreateBookingService implements CreateBookingUseCase {
                                 command.itemId(),
                                 command.quantity()));
         bookingRepository.save(booking);
+        // Best-effort, not transactional with the write above - see
+        // docs/adr/0009-booking-receipts-in-s3.md.
+        receiptStorage.store(booking);
         return booking.id();
     }
 }

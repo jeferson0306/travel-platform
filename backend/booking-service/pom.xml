@@ -21,6 +21,7 @@
     <quarkus.platform.version>3.37.3</quarkus.platform.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.6</surefire-plugin.version>
+    <awssdk.version>2.46.7</awssdk.version>
   </properties>
 
   <dependencyManagement>
@@ -32,6 +33,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -39,6 +47,14 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-messaging-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
