@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingReference;
+import com.travelplatform.booking.domain.booking.Email;
 import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
@@ -72,6 +73,7 @@ class S3ReceiptStorageTest {
     private Booking aBooking() {
         return Booking.create(
                 new TravelerId(UUID.randomUUID()),
+                new Email("traveler@example.com"),
                 new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2),
                 new Money(new BigDecimal("450.00"), "EUR"));
     }

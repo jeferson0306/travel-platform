@@ -40,6 +40,7 @@ public class BookingResource {
                 createBookingUseCase.create(
                         new CreateBookingCommand(
                                 request.travelerId(),
+                                request.travelerEmail(),
                                 request.itemType(),
                                 request.itemId(),
                                 request.quantity(),

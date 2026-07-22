@@ -10,6 +10,7 @@ import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingNotFoundException;
 import com.travelplatform.booking.domain.booking.BookingReference;
+import com.travelplatform.booking.domain.booking.Email;
 import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
@@ -42,6 +43,7 @@ class CancelBookingServiceTest {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
+                        new Email("traveler@example.com"),
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         new Money(new BigDecimal("95.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));

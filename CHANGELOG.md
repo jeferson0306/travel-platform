@@ -80,3 +80,16 @@ and this project uses milestone-based versioning as defined in
   POM, bound to `mvn test` itself. Mutation testing (PIT) is configured but
   currently blocked by an upstream Java 25 bytecode incompatibility - see
   docs/development/testing.md.
+- `notification-service`: sixth microservice, the saga's terminal step
+  (M12, ADR 0011). `booking-service`'s `Booking.confirm()` now raises
+  `BookingConfirmed` (carrying the traveler's email, added as trusted
+  client input on `CreateBookingRequest` like `amount` before it),
+  published to Kafka for free via the existing generic outbox relay.
+  `notification-service` consumes `booking-confirmed` (own consumer group
+  `notification-processor`), sends a booking confirmation email (simulated
+  gateway) and stores a `Notification` record, exposed read-only via
+  `GET /api/v1/notifications/{bookingId}` (support/admin roles). Unlike
+  every other aggregate in this platform, `Notification` raises no domain
+  events and has no transactional outbox - nothing downstream reacts to "a
+  notification was sent." Same Mongo-backed idempotency/retry/DLQ shape as
+  M10/M11. `ci.yml`'s matrix now covers all six services.

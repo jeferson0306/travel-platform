@@ -9,6 +9,7 @@ public interface CreateBookingUseCase {
 
     record CreateBookingCommand(
             String travelerId,
+            String travelerEmail,
             String itemType,
             String itemId,
             int quantity,

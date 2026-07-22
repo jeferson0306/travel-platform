@@ -30,7 +30,7 @@ _why_ it got that way and what was rejected.
 | `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                       |
 | `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                       |
 | `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                     |
-| `notification-service` | Email/SMS/push delivery                    | Kafka (`notification-created`, `email-requested`)               |
+| `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                            |
 | `search-service`       | Autocomplete, fuzzy & geo search           | OpenSearch, consumes flight/hotel events                        |
 | `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                      |
 
@@ -104,11 +104,16 @@ shared logging adapter every service uses (introduced in Phase 1).
 
 This document reflects the target architecture. As of the current milestone
 (see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
-(Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9) and
-`payment-service` (Phase 3, M11) are implemented; `currency-service`,
-`notification-service`, `search-service` and `gateway` are still planned.
+(Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9),
+`payment-service` (Phase 3, M11) and `notification-service` (Phase 3, M12)
+are implemented; `currency-service`, `search-service` and `gateway` are
+still planned.
 `flight-service` and `hotel-service` consume `booking-created` (M10) - the
 platform's first real cross-service event-driven integration, not just
 publish-and-forget. `payment-service` and `booking-service` extend that into
 a full choreography saga (M11, ADR 0010): booking-created triggers payment
 authorization, whose outcome confirms or compensates (cancels) the booking.
+`notification-service` (M12, ADR 0011) is the saga's terminal step: it
+consumes `booking-confirmed` and sends a confirmation email - the platform's
+first consumer with no domain events/outbox of its own, since nothing
+downstream reacts to "a notification was sent."

@@ -6,6 +6,7 @@ import com.travelplatform.booking.application.port.out.ReceiptStorage;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingReference;
+import com.travelplatform.booking.domain.booking.Email;
 import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
@@ -28,6 +29,7 @@ public class CreateBookingService implements CreateBookingUseCase {
         var booking =
                 Booking.create(
                         TravelerId.of(command.travelerId()),
+                        new Email(command.travelerEmail()),
                         new BookingReference(
                                 ItemType.valueOf(command.itemType()),
                                 command.itemId(),

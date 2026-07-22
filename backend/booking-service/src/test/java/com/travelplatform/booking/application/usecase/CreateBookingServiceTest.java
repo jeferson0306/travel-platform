@@ -39,6 +39,7 @@ class CreateBookingServiceTest {
                 service.create(
                         new CreateBookingCommand(
                                 travelerId,
+                                "traveler@example.com",
                                 "FLIGHT",
                                 UUID.randomUUID().toString(),
                                 2,

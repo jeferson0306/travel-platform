@@ -43,5 +43,11 @@ create_topic "booking-cancelled.payment-processor.dlq"
 create_topic "payment-authorized.booking-payment-outcome.dlq"
 create_topic "payment-failed.booking-payment-outcome.dlq"
 
+# booking-service publishes booking-confirmed (raised by Booking.confirm(), via the same generic
+# outbox relay as booking-created/booking-cancelled - no separate code path). notification-service
+# consumes it (ROADMAP M12, docs/adr/0011-notification-service.md).
+create_topic "booking-confirmed"
+create_topic "booking-confirmed.notification-processor.dlq"
+
 echo "Topics ready:"
 "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" --list

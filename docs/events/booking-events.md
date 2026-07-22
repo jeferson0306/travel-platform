@@ -32,8 +32,33 @@ Consumers:
   (ROADMAP M11, see
   [docs/adr/0010-payment-saga.md](../adr/0010-payment-saga.md) and
   [docs/events/payment-events.md](payment-events.md)).
-- Planned: `notification-service` (confirmation email), `search-service`
-  (once it exists).
+- Planned: `search-service` (once it exists).
+
+## `booking-confirmed`
+
+Published by `booking-service` when a booking transitions `PENDING` →
+`CONFIRMED` - i.e. when its `payment-authorized` consumer calls
+`Booking.confirm()` (see the saga in
+[docs/adr/0010-payment-saga.md](../adr/0010-payment-saga.md)). Raised by the
+same generic outbox mechanism as `booking-created`/`booking-cancelled` - no
+separate publish code path.
+
+| Field           | Type                  | Meaning                                      |
+| --------------- | --------------------- | -------------------------------------------- |
+| `bookingId`     | object (`BookingId`)  | The confirmed booking's id                   |
+| `travelerId`    | object (`TravelerId`) | Owning traveler                              |
+| `travelerEmail` | object (`Email`)      | Where to send the confirmation (ROADMAP M12) |
+| `occurredOn`    | timestamp             | When the booking was confirmed               |
+
+`travelerEmail` is trusted client input on `CreateBookingRequest`, carried
+through to this event - same simplification already noted for `amount`
+(ROADMAP M11). Revisit once the Gateway (M14) or an identity lookup lands.
+
+Consumer: `notification-service` (consumer group `notification-processor`)
+
+- sends a booking confirmation email and stores a `Notification` record
+  (ROADMAP M12, see
+  [docs/adr/0011-notification-service.md](../adr/0011-notification-service.md)).
 
 ## `booking-cancelled`
 
@@ -84,3 +109,8 @@ their own `booking-created.payment-processor.dlq`/
 `booking-cancelled.payment-processor.dlq` topics (see
 [docs/events/payment-events.md](payment-events.md) and
 [docs/adr/0010-payment-saga.md](../adr/0010-payment-saga.md)).
+
+`notification-service`'s `booking-confirmed` consumer (own consumer group
+`notification-processor`, ROADMAP M12) follows the same shape too, against
+its own `booking-confirmed.notification-processor.dlq` topic (see
+[docs/adr/0011-notification-service.md](../adr/0011-notification-service.md)).
