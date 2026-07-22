@@ -1,0 +1,13 @@
+{
+  "name": "travel-platform",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Formatting and repo-level tooling for the travel-platform monorepo. Frontend and backend have their own package.json/pom.xml.",
+  "scripts": {
+    "format": "prettier --write \"**/*.{yml,yaml,json,md}\" --ignore-unknown",
+    "format:check": "prettier --check \"**/*.{yml,yaml,json,md}\" --ignore-unknown"
+  },
+  "devDependencies": {
+    "prettier": "3.3.3"
+  }
+}

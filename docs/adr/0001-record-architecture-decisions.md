@@ -6,7 +6,7 @@
 ## Context
 
 Significant technical decisions (framework choices, service boundaries, data
-storage, integration patterns) need a durable record of *why* they were made,
+storage, integration patterns) need a durable record of _why_ they were made,
 not just what was chosen. Without this, decisions get silently re-litigated
 or reversed without anyone remembering the trade-off that motivated them —
 especially in a project that spans many months and many independent working

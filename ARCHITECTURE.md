@@ -2,8 +2,8 @@
 
 This document describes the system's shape and the reasoning behind it. For
 the reasoning behind any single choice, see the corresponding ADR in
-[docs/adr](docs/adr) — this file describes the *current* state, ADRs describe
-*why* it got that way and what was rejected.
+[docs/adr](docs/adr) — this file describes the _current_ state, ADRs describe
+_why_ it got that way and what was rejected.
 
 ## Guiding principles
 
@@ -22,17 +22,17 @@ the reasoning behind any single choice, see the corresponding ADR in
 
 ## Service map
 
-| Service | Owns | Talks to |
-|---|---|---|
-| `identity-service` | Users, credentials, sessions, RBAC | issues JWTs consumed by all services |
-| `booking-service` | Reservation lifecycle | flight/hotel-service (availability), Kafka (`booking-*` events) |
-| `payment-service` | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events) |
-| `flight-service` | Flight inventory & pricing | search-service (indexing) |
-| `hotel-service` | Hotel inventory & pricing | search-service (indexing) |
-| `currency-service` | FX rates, multi-currency conversion | consumed by booking/payment |
-| `notification-service` | Email/SMS/push delivery | Kafka (`notification-created`, `email-requested`) |
-| `search-service` | Autocomplete, fuzzy & geo search | OpenSearch, consumes flight/hotel events |
-| `gateway` | Routing, auth enforcement, rate limiting | fronts every service above |
+| Service                | Owns                                       | Talks to                                                        |
+| ---------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                            |
+| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), Kafka (`booking-*` events) |
+| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)              |
+| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                       |
+| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                       |
+| `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                     |
+| `notification-service` | Email/SMS/push delivery                    | Kafka (`notification-created`, `email-requested`)               |
+| `search-service`       | Autocomplete, fuzzy & geo search           | OpenSearch, consumes flight/hotel events                        |
+| `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                      |
 
 Full container-level detail: [docs/c4](docs/c4).
 

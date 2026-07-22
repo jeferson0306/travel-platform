@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.travelplatform</groupId>
+  <artifactId>travel-platform-backend-parent</artifactId>
+  <version>0.0.0</version>
+  <packaging>pom</packaging>
+
+  <description>Parent POM shared by every backend microservice. Owns build-wide concerns
+    (formatting, static analysis, coverage) so each service pom only declares
+    &lt;parent&gt; and its own dependencies. Individual services are added as
+    &lt;modules&gt; here as they are built - see ../ROADMAP.md.</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>25</maven.compiler.release>
+    <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
+    <google-java-format.version>1.23.0</google-java-format.version>
+  </properties>
+
+  <build>
+    <plugins>
+      <!--
+        Formatting is enforced, not suggested: `apply` runs from the git
+        pre-commit hook on every commit, `check` runs in CI as a safety net.
+        Because every commit is already formatted, the CI check should never
+        fail in practice - it exists to catch a commit made with hooks
+        bypassed or not installed.
+      -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless-maven-plugin.version}</version>
+        <configuration>
+          <java>
+            <googleJavaFormat>
+              <version>${google-java-format.version}</version>
+              <style>AOSP</style>
+            </googleJavaFormat>
+            <removeUnusedImports></removeUnusedImports>
+            <importOrder></importOrder>
+            <endWithNewline></endWithNewline>
+            <trimTrailingWhitespace></trimTrailingWhitespace>
+          </java>
+          <pom>
+            <sortPom></sortPom>
+          </pom>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
