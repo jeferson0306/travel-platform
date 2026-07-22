@@ -95,17 +95,17 @@
           </execution>
           <execution>
             <id>report</id>
-            <phase>test</phase>
             <goals>
               <goal>report</goal>
             </goals>
+            <phase>test</phase>
           </execution>
           <execution>
             <id>check</id>
-            <phase>test</phase>
             <goals>
               <goal>check</goal>
             </goals>
+            <phase>test</phase>
             <!--
               0.45 at BUNDLE (whole-service) level - a real, measured floor, not a target: the
               domain/application layers, where the business logic and bug risk actually live, run
