@@ -44,8 +44,8 @@ reaction to `booking-cancelled` - see docs/events/booking-events.md).
 | `amount`     | object (`Money`)     | Amount refunded                 |
 | `occurredOn` | timestamp            | When the refund happened        |
 
-No consumer exists yet. Planned: `notification-service` (refund confirmation
-email, once it exists - M12).
+No consumer exists yet - a refund-confirmation notification is a candidate
+for a future milestone, not scoped to any so far.
 
 ## Delivery guarantees
 

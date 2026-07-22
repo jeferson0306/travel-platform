@@ -93,3 +93,22 @@ and this project uses milestone-based versioning as defined in
   events and has no transactional outbox - nothing downstream reacts to "a
   notification was sent." Same Mongo-backed idempotency/retry/DLQ shape as
   M10/M11. `ci.yml`'s matrix now covers all six services.
+- `search-service`: seventh microservice, and the first with no MongoDB at
+  all (M13, ADR 0012). `flight-service` and `hotel-service` each gain their
+  first domain event (`FlightCreated`/`HotelCreated`, raised by their
+  existing `create()` factory, published for free via the same generic
+  outbox relay every other service already uses). `search-service` consumes
+  both and indexes into OpenSearch - its only datastore, since every
+  document it holds is a rebuildable projection of flight-service's/
+  hotel-service's own data, not something worth a second Mongo instance for.
+  Exposes public `GET /api/v1/search/flights` (route or `q=` prefix
+  autocomplete) and `GET /api/v1/search/hotels` (city or `q=` prefix
+  autocomplete) - no authentication anywhere, the platform's first fully
+  public service. Idempotency is free here: indexing by id is an upsert, so
+  duplicate Kafka deliveries need no claim collection, unlike every other
+  consumer in this platform. Retry/DLQ bookkeeping (`retry_tasks`/
+  `dead_letters`) lives in OpenSearch indices instead of MongoDB
+  collections, same shape otherwise. Tests run against a real OpenSearch via
+  Testcontainers (`opensearch-testcontainers`), since this Quarkus version
+  has no Dev Services support for it. `docker-compose.yml` gains an
+  `opensearch` service; `ci.yml`'s matrix now covers all seven services.

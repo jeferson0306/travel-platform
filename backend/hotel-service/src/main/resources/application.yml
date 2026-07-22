@@ -43,6 +43,13 @@ mp:
         topic: booking-created.hotel-inventory.dlq
         value:
           serializer: org.apache.kafka.common.serialization.StringSerializer
+      hotel-events:
+        connector: smallrye-kafka
+        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        # default only satisfies config validation and is never actually used.
+        topic: hotel-events-default
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
 
 "%dev":
   quarkus:
@@ -66,6 +73,8 @@ mp:
           connector: smallrye-in-memory
       outgoing:
         booking-created-dlq:
+          connector: smallrye-in-memory
+        hotel-events:
           connector: smallrye-in-memory
 
 "%prod":

@@ -1,10 +1,13 @@
 package com.travelplatform.flight.domain.flight;
 
+import com.travelplatform.flight.domain.shared.DomainEvent;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Aggregate root for the flight bounded context. No lifecycle yet - inventory is immutable once
- * created (no update/delete endpoint); revisit once a real need appears.
+ * Aggregate root for the flight bounded context. No lifecycle yet beyond creation and seat
+ * reservation (no update/delete endpoint); revisit once a real need appears.
  */
 public final class Flight {
 
@@ -15,6 +18,7 @@ public final class Flight {
     private final Instant arrivalAt;
     private final Money price;
     private final int availableSeats;
+    private final List<DomainEvent> domainEvents = new ArrayList<>();
 
     private Flight(
             FlightId id,
@@ -46,14 +50,26 @@ public final class Flight {
         if (availableSeats < 0) {
             throw new IllegalArgumentException("availableSeats must not be negative");
         }
-        return new Flight(
-                FlightId.newId(),
-                origin,
-                destination,
-                departureAt,
-                arrivalAt,
-                price,
-                availableSeats);
+        var flight =
+                new Flight(
+                        FlightId.newId(),
+                        origin,
+                        destination,
+                        departureAt,
+                        arrivalAt,
+                        price,
+                        availableSeats);
+        flight.domainEvents.add(
+                new FlightCreated(
+                        flight.id,
+                        flight.origin,
+                        flight.destination,
+                        flight.departureAt,
+                        flight.arrivalAt,
+                        flight.price,
+                        flight.availableSeats,
+                        Instant.now()));
+        return flight;
     }
 
     public static Flight reconstitute(
@@ -93,5 +109,11 @@ public final class Flight {
 
     public int availableSeats() {
         return availableSeats;
+    }
+
+    public List<DomainEvent> pullDomainEvents() {
+        var events = List.copyOf(domainEvents);
+        domainEvents.clear();
+        return events;
     }
 }

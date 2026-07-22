@@ -58,8 +58,12 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       `Notification` record. Terminal consumer - no domain events/outbox of
       its own. Idempotent, with the same Mongo-backed retry queue/DLQ shape
       as M10/M11 (ADR 0011).
-- [ ] **M13 — search-service**: OpenSearch-backed autocomplete and geo
-      search.
+- [x] **M13 — search-service**: `flight-service`/`hotel-service` publish
+      their first domain events (`flight-created`/`hotel-created`, via the
+      existing generic outbox relay); `search-service` consumes both and
+      indexes into OpenSearch - its only datastore, no MongoDB (ADR 0012).
+      Public route/city search plus prefix autocomplete. True geo search
+      descoped - `City` has no coordinates yet.
 - [ ] **M14 — API Gateway**: routing, JWT validation, rate limiting, CORS.
 
 ## Phase 4 — Resilience & scale

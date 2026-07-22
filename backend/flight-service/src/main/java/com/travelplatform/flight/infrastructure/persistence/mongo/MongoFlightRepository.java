@@ -1,5 +1,7 @@
 package com.travelplatform.flight.infrastructure.persistence.mongo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -15,25 +17,52 @@ import java.util.Optional;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/**
+ * Persists a flight and its pulled domain events to the transactional outbox in one MongoDB
+ * transaction - see docs/adr/0007-transactional-outbox.md.
+ */
 @ApplicationScoped
 public class MongoFlightRepository implements FlightRepository {
 
+    private final MongoClient mongoClient;
     private final MongoCollection<Document> flights;
+    private final MongoCollection<Document> outbox;
+    private final ObjectMapper objectMapper;
 
     public MongoFlightRepository(
             MongoClient mongoClient,
+            ObjectMapper objectMapper,
             @ConfigProperty(name = "flight.mongo.database", defaultValue = "flight")
                     String database) {
-        this.flights = mongoClient.getDatabase(database).getCollection("flights");
+        this.mongoClient = mongoClient;
+        this.objectMapper = objectMapper;
+        var db = mongoClient.getDatabase(database);
+        this.flights = db.getCollection("flights");
+        this.outbox = db.getCollection("outbox");
     }
 
     @Override
     public void save(Flight flight) {
+        var events = flight.pullDomainEvents();
         var document = FlightDocumentMapper.toDocument(flight);
-        flights.replaceOne(
-                Filters.eq("_id", document.getString("_id")),
-                document,
-                new ReplaceOptions().upsert(true));
+
+        try (ClientSession session = mongoClient.startSession()) {
+            session.<Void>withTransaction(
+                    () -> {
+                        flights.replaceOne(
+                                session,
+                                Filters.eq("_id", document.getString("_id")),
+                                document,
+                                new ReplaceOptions().upsert(true));
+                        events.forEach(
+                                event ->
+                                        outbox.insertOne(
+                                                session,
+                                                OutboxDocumentMapper.toDocument(
+                                                        event, objectMapper)));
+                        return null;
+                    });
+        }
     }
 
     @Override
