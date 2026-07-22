@@ -13,7 +13,7 @@ public class InvalidCredentialsExceptionMapper
     @Override
     public Response toResponse(InvalidCredentialsException exception) {
         return Response.status(Response.Status.UNAUTHORIZED)
-                .entity(new ErrorResponse(exception.getMessage()))
+                .entity(new ErrorResponse("INVALID_CREDENTIALS", exception.getMessage()))
                 .build();
     }
 }

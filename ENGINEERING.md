@@ -27,6 +27,13 @@ A change is done when:
 Nothing merges to `develop` short of this list. Nothing merges to `main`
 except through a release PR from a stable `develop`.
 
+This maps to four gates, in order: **Architecture Ready** (an ADR exists for
+any new dependency or boundary), **Code Ready** (compiles, follows the
+package layout in ARCHITECTURE.md), **Test Ready** (item 2 above, including
+negative/edge-case paths - not just the happy path), **Production Ready**
+(items 4-6 above). A PR that skips a gate goes back, it doesn't get a pass
+because a later gate looked fine.
+
 ## Testing strategy
 
 | Level                        | Tool                                           | Runs                                                |

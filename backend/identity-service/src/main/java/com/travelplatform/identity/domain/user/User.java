@@ -11,6 +11,7 @@ public final class User {
     private final UserId id;
     private final Email email;
     private final HashedPassword password;
+    private final Role role;
     private final UserStatus status;
     private final Instant registeredAt;
     private final List<DomainEvent> domainEvents = new ArrayList<>();
@@ -19,19 +20,28 @@ public final class User {
             UserId id,
             Email email,
             HashedPassword password,
+            Role role,
             UserStatus status,
             Instant registeredAt) {
         this.id = id;
         this.email = email;
         this.password = password;
+        this.role = role;
         this.status = status;
         this.registeredAt = registeredAt;
     }
 
-    /** Registers a new user, recording a {@link UserRegistered} domain event. */
+    /** Registers a new user with the default {@link Role#USER} role. */
     public static User register(Email email, HashedPassword password) {
         var registeredAt = Instant.now();
-        var user = new User(UserId.newId(), email, password, UserStatus.ACTIVE, registeredAt);
+        var user =
+                new User(
+                        UserId.newId(),
+                        email,
+                        password,
+                        Role.USER,
+                        UserStatus.ACTIVE,
+                        registeredAt);
         user.domainEvents.add(new UserRegistered(user.id, user.email, registeredAt));
         return user;
     }
@@ -41,9 +51,10 @@ public final class User {
             UserId id,
             Email email,
             HashedPassword password,
+            Role role,
             UserStatus status,
             Instant registeredAt) {
-        return new User(id, email, password, status, registeredAt);
+        return new User(id, email, password, role, status, registeredAt);
     }
 
     public boolean isActive() {
@@ -60,6 +71,10 @@ public final class User {
 
     public HashedPassword password() {
         return password;
+    }
+
+    public Role role() {
+        return role;
     }
 
     public UserStatus status() {

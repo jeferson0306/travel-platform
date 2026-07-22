@@ -2,6 +2,7 @@ package com.travelplatform.identity.infrastructure.persistence.mongo;
 
 import com.travelplatform.identity.domain.user.Email;
 import com.travelplatform.identity.domain.user.HashedPassword;
+import com.travelplatform.identity.domain.user.Role;
 import com.travelplatform.identity.domain.user.User;
 import com.travelplatform.identity.domain.user.UserId;
 import com.travelplatform.identity.domain.user.UserStatus;
@@ -17,6 +18,7 @@ public final class UserDocumentMapper {
         return new Document("_id", user.id().value().toString())
                 .append("email", user.email().value())
                 .append("passwordHash", user.password().value())
+                .append("role", user.role().name())
                 .append("status", user.status().name())
                 .append("registeredAt", Date.from(user.registeredAt()));
     }
@@ -26,6 +28,7 @@ public final class UserDocumentMapper {
                 UserId.of(document.getString("_id")),
                 new Email(document.getString("email")),
                 new HashedPassword(document.getString("passwordHash")),
+                Role.valueOf(document.getString("role")),
                 UserStatus.valueOf(document.getString("status")),
                 document.getDate("registeredAt").toInstant());
     }
