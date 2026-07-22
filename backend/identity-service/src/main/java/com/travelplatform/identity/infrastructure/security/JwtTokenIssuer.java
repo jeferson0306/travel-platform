@@ -30,7 +30,7 @@ public class JwtTokenIssuer implements TokenIssuer {
                 Jwt.issuer(issuer)
                         .subject(user.id().value().toString())
                         .upn(user.email().value())
-                        .groups("traveler")
+                        .groups(user.role().name())
                         .expiresIn(ttl)
                         .jws()
                         .signWithSecret(secret);

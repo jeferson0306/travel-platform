@@ -15,6 +15,7 @@ class UserTest {
 
         assertThat(user.isActive()).isTrue();
         assertThat(user.email()).isEqualTo(email);
+        assertThat(user.role()).isEqualTo(Role.USER);
         assertThat(user.pullDomainEvents())
                 .hasSize(1)
                 .first()
@@ -42,6 +43,7 @@ class UserTest {
                         UserId.newId(),
                         new Email("traveler@example.com"),
                         new HashedPassword("hash"),
+                        Role.USER,
                         UserStatus.ACTIVE,
                         java.time.Instant.now());
 

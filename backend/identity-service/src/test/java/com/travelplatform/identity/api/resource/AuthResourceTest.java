@@ -51,7 +51,8 @@ class AuthResourceTest {
                 .when()
                 .post("/api/v1/auth/register")
                 .then()
-                .statusCode(409);
+                .statusCode(409)
+                .body("error", equalTo("CONFLICT"));
     }
 
     @Test
@@ -66,6 +67,19 @@ class AuthResourceTest {
                 .when()
                 .post("/api/v1/auth/login")
                 .then()
-                .statusCode(401);
+                .statusCode(401)
+                .body("error", equalTo("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void rejectsRegistrationWithInvalidPayload() {
+        given().contentType("application/json")
+                .body(new RegisterUserRequest("not-an-email", "short"))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("VALIDATION_ERROR"))
+                .body("details", notNullValue());
     }
 }

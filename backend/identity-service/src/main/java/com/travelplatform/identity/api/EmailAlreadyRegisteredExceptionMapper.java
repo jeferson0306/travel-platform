@@ -13,7 +13,7 @@ public class EmailAlreadyRegisteredExceptionMapper
     @Override
     public Response toResponse(EmailAlreadyRegisteredException exception) {
         return Response.status(Response.Status.CONFLICT)
-                .entity(new ErrorResponse(exception.getMessage()))
+                .entity(new ErrorResponse("CONFLICT", exception.getMessage()))
                 .build();
     }
 }
