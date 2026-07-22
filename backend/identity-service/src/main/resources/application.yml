@@ -1,0 +1,58 @@
+quarkus:
+  application:
+    name: identity-service
+  http:
+    port: 8081
+  mongodb:
+    database: identity
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # No collector running locally by default - spans are still created (so
+    # traceId/spanId land in the structured logs below) but nothing is
+    # exported over the network. Point this at Tempo/Jaeger once
+    # infrastructure/monitoring wires one up (ROADMAP M16).
+    traces:
+      exporter: none
+
+identity:
+  jwt:
+    issuer: travel-platform-identity
+    ttl-seconds: 3600
+
+smallrye:
+  jwt:
+    sign:
+      # RSA private key, RS256 (the smallrye-jwt default algorithm) - identity-service
+      # is the only service that ever holds this. This checked-in key is a
+      # dev/test fixture, not a production secret (see SECURITY.md) - a real
+      # deployment mounts its own key material via this same property.
+      key:
+        location: privateKey.pem
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    mongodb:
+      database: identity-test
+    log:
+      console:
+        json:
+          enabled: false
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}

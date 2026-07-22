@@ -1,0 +1,37 @@
+name: Lint
+
+# Formatting is applied automatically at commit time by the local pre-commit
+# hook (infrastructure/scripts/pre-commit), so this check should always pass.
+# It exists as a safety net for a commit made with hooks bypassed or not
+# installed - CI is the last line of defense, not the primary mechanism.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  format-check-web:
+    name: Format check (yaml/json/md)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run format:check
+
+  format-check-java:
+    name: Format check (Java)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "25"
+          cache: "maven"
+      - run: mvn -q -f backend/pom.xml spotless:check

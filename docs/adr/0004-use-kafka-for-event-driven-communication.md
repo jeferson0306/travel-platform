@@ -60,3 +60,35 @@ Rejected alternatives:
 - Schema Registry / Avro is deferred until a concrete need for schema
   evolution guarantees appears; JSON Schema is the default until then, noted
   per topic in the AsyncAPI spec.
+
+## Addendum (M10) — Mongo-backed retry, not a literal second Kafka topic
+
+The first real consumers (`flight-service` and `hotel-service`, each in their
+own consumer group, decrementing inventory on `booking-created`) surfaced a
+gap in "retry topics + dead-letter queue per consumer" as originally
+written: Kafka has no built-in delayed redelivery. Publishing a failed
+message straight back onto a literal retry topic means a consumer either
+busy-loops re-reading it immediately (no backoff) or must itself implement
+delay logic - at which point the "retry topic" is not doing any of the
+actual work.
+
+Implemented instead: a failed message (transient Mongo error, or a business
+failure such as insufficient inventory) is recorded in that service's own
+`retry_tasks` MongoDB collection with a `nextAttemptAt`, and a `@Scheduled`
+relay (mirroring `booking-service`'s `OutboxRelay` - see ADR 0007) retries
+it with exponential backoff. The original Kafka message is acknowledged
+immediately either way, so a poison message never blocks the partition -
+the ADR's actual goal. Only once a task exhausts its retry budget does it
+become externally visible on Kafka: it is moved to a `dead_letters`
+collection and a summary is published to a **DLQ topic named after the
+topic and consumer group** (`booking-created.<group>.dlq`, e.g.
+`booking-created.flight-inventory.dlq`), so on-call tooling can alert on it
+without querying MongoDB directly.
+
+A malformed (unparseable) message is not retried at all - retrying can
+never fix a parsing failure, so it is logged and dropped immediately rather
+than occupying a retry slot.
+
+This keeps the two behaviors ADR 0004 actually cares about (partition never
+blocks; failures are inspectable, not silently dropped) while being honest
+that the redelivery mechanism is Mongo-backed, not Kafka-native.

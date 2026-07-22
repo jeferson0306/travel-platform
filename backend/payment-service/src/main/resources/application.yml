@@ -1,0 +1,100 @@
+quarkus:
+  application:
+    name: payment-service
+  http:
+    port: 8085
+  mongodb:
+    database: payment
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  kafka:
+    devservices:
+      # See booking-service/src/main/resources/application.yml for the rationale - tests use
+      # the in-memory connector (see %test below).
+      enabled: false
+
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+  messaging:
+    incoming:
+      booking-created:
+        connector: smallrye-kafka
+        topic: booking-created
+        group.id: payment-processor
+        auto.offset.reset: earliest
+      booking-cancelled:
+        connector: smallrye-kafka
+        topic: booking-cancelled
+        group.id: payment-processor
+        auto.offset.reset: earliest
+    outgoing:
+      payment-events:
+        connector: smallrye-kafka
+        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        # default only satisfies config validation and is never actually used.
+        topic: payment-events-default
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+      booking-created-dlq:
+        connector: smallrye-kafka
+        topic: booking-created.payment-processor.dlq
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+      booking-cancelled-dlq:
+        connector: smallrye-kafka
+        topic: booking-cancelled.payment-processor.dlq
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    mongodb:
+      database: payment-test
+    log:
+      console:
+        json:
+          enabled: false
+  mp:
+    messaging:
+      incoming:
+        booking-created:
+          connector: smallrye-in-memory
+        booking-cancelled:
+          connector: smallrye-in-memory
+      outgoing:
+        payment-events:
+          connector: smallrye-in-memory
+        booking-created-dlq:
+          connector: smallrye-in-memory
+        booking-cancelled-dlq:
+          connector: smallrye-in-memory
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}
+  kafka:
+    bootstrap:
+      servers: ${KAFKA_BOOTSTRAP_SERVERS}

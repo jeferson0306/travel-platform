@@ -17,8 +17,8 @@ choice is documented and justified in [docs/adr](docs/adr).
 ## Why this exists
 
 Most portfolio projects use a handful of technologies to show familiarity
-with them. This one is built around a different question: *does the system
-survive contact with reality?* Can it be debugged from a log line, scaled
+with them. This one is built around a different question: _does the system
+survive contact with reality?_ Can it be debugged from a log line, scaled
 under load, recovered from a dependency outage, and understood by someone who
 did not write it? The engineering practices below exist to answer "yes."
 
@@ -44,16 +44,16 @@ boundaries.
 
 ## Tech stack
 
-| Layer | Choices |
-|---|---|
-| Backend | Java 25, Quarkus 3, RESTEasy Reactive, Hibernate Validator, MapStruct |
-| Frontend | React, TypeScript, Vite, TanStack Query, React Hook Form, Zod, Tailwind, shadcn/ui |
-| Data | MongoDB (primary), Redis (cache/session/rate-limit), OpenSearch (search) |
-| Messaging | Apache Kafka (consumer groups, retry topics, DLQ) |
-| Cloud (local) | LocalStack (S3, SQS, SNS, SES, Secrets Manager, EventBridge) |
-| Infrastructure | Docker Compose, Terraform, Kubernetes manifests |
-| Observability | OpenTelemetry, Prometheus, Grafana, Loki, Tempo |
-| Quality | JUnit 5, Testcontainers, ArchUnit, PIT (mutation), k6/Gatling, JaCoCo, SonarQube |
+| Layer          | Choices                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- |
+| Backend        | Java 25, Quarkus 3, RESTEasy Reactive, Hibernate Validator, MapStruct              |
+| Frontend       | React, TypeScript, Vite, TanStack Query, React Hook Form, Zod, Tailwind, shadcn/ui |
+| Data           | MongoDB (primary), Redis (cache/session/rate-limit), OpenSearch (search)           |
+| Messaging      | Apache Kafka (consumer groups, retry topics, DLQ)                                  |
+| Cloud (local)  | LocalStack (S3, SQS, SNS, SES, Secrets Manager, EventBridge)                       |
+| Infrastructure | Docker Compose, Terraform, Kubernetes manifests                                    |
+| Observability  | OpenTelemetry, Prometheus, Grafana, Loki, Tempo                                    |
+| Quality        | JUnit 5, Testcontainers, ArchUnit, PIT (mutation), k6/Gatling, JaCoCo, SonarQube   |
 
 Every choice above has a corresponding ADR in [docs/adr](docs/adr) explaining
 why it was picked over the alternatives.

@@ -41,7 +41,7 @@ C4Container
 
     Rel(booking, kafka, "Publishes booking-*", "Kafka")
     Rel(payment, kafka, "Publishes payment-*", "Kafka")
-    Rel(notification, kafka, "Consumes *-requested/*-created", "Kafka")
+    Rel(notification, kafka, "Consumes booking-confirmed", "Kafka")
     Rel(search, kafka, "Consumes flight/hotel updates", "Kafka")
 
     Rel(identity, mongo, "Reads/writes", "MongoDB driver")
@@ -49,6 +49,7 @@ C4Container
     Rel(payment, mongo, "Reads/writes", "MongoDB driver")
     Rel(flight, mongo, "Reads/writes", "MongoDB driver")
     Rel(hotel, mongo, "Reads/writes", "MongoDB driver")
+    Rel(notification, mongo, "Reads/writes", "MongoDB driver")
 
     Rel(identity, redis, "Sessions, JWT blacklist, rate limit")
     Rel(gateway, redis, "Rate limit")

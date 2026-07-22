@@ -11,11 +11,17 @@ services:
     image: mongo:7.0
     container_name: travel-platform-mongodb
     restart: unless-stopped
+    # Single-node replica set, not standalone: multi-document transactions
+    # (used by the outbox pattern - see docs/adr/0007-transactional-outbox.md)
+    # require one. No auth on this local instance - it is not exposed
+    # beyond the host, and Quarkus Dev Services provisions an equivalent
+    # ephemeral replica-set Mongo automatically for `quarkus:dev`/tests, so
+    # this container is mainly for docker-compose-only workflows. A real
+    # environment (MongoDB Atlas) is always authenticated - see
+    # docs/adr/0003-use-mongodb-as-primary-database.md.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-travel_platform}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-local_dev_only}
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -23,6 +29,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - travel-platform
+
+  mongodb-init:
+    image: mongo:7.0
+    container_name: travel-platform-mongodb-init
+    restart: "no"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        mongosh --host mongodb --quiet --eval '
+        try { rs.status(); print("replica set already initiated"); }
+        catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]}); print("replica set initiated"); }
+        '
     networks:
       - travel-platform
 
@@ -62,6 +85,28 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     volumes:
       - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - travel-platform
+
+  kafka-init:
+    image: apache/kafka:3.8.0
+    container_name: travel-platform-kafka-init
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
+    volumes:
+      - ../kafka/create-topics.sh:/scripts/create-topics.sh:ro
     networks:
       - travel-platform
 

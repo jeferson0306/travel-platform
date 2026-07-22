@@ -2,8 +2,8 @@
 
 This document describes the system's shape and the reasoning behind it. For
 the reasoning behind any single choice, see the corresponding ADR in
-[docs/adr](docs/adr) — this file describes the *current* state, ADRs describe
-*why* it got that way and what was rejected.
+[docs/adr](docs/adr) — this file describes the _current_ state, ADRs describe
+_why_ it got that way and what was rejected.
 
 ## Guiding principles
 
@@ -22,17 +22,17 @@ the reasoning behind any single choice, see the corresponding ADR in
 
 ## Service map
 
-| Service | Owns | Talks to |
-|---|---|---|
-| `identity-service` | Users, credentials, sessions, RBAC | issues JWTs consumed by all services |
-| `booking-service` | Reservation lifecycle | flight/hotel-service (availability), Kafka (`booking-*` events) |
-| `payment-service` | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events) |
-| `flight-service` | Flight inventory & pricing | search-service (indexing) |
-| `hotel-service` | Hotel inventory & pricing | search-service (indexing) |
-| `currency-service` | FX rates, multi-currency conversion | consumed by booking/payment |
-| `notification-service` | Email/SMS/push delivery | Kafka (`notification-created`, `email-requested`) |
-| `search-service` | Autocomplete, fuzzy & geo search | OpenSearch, consumes flight/hotel events |
-| `gateway` | Routing, auth enforcement, rate limiting | fronts every service above |
+| Service                | Owns                                       | Talks to                                                        |
+| ---------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                            |
+| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), Kafka (`booking-*` events) |
+| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)              |
+| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                       |
+| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                       |
+| `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                     |
+| `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                            |
+| `search-service`       | Autocomplete, fuzzy & geo search           | OpenSearch, consumes flight/hotel events                        |
+| `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                      |
 
 Full container-level detail: [docs/c4](docs/c4).
 
@@ -74,6 +74,17 @@ as they are introduced in [docs/asyncapi](docs/asyncapi) and
 [docs/events](docs/events). See ADR
 [0004](docs/adr/0004-use-kafka-for-event-driven-communication.md).
 
+## AWS resources
+
+Where a need is naturally AWS-shaped rather than message-shaped (durable
+object storage, later transactional email/config/secrets), resources are
+provisioned with Terraform against LocalStack locally and a real AWS
+account otherwise - see ADR
+[0008](docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md).
+First resource: an S3 bucket (`booking-receipts`) that `booking-service`
+writes a JSON booking confirmation to - ADR
+[0009](docs/adr/0009-booking-receipts-in-s3.md).
+
 ## Resilience
 
 Every outbound call (service-to-service REST, database, cache, external API)
@@ -92,5 +103,17 @@ shared logging adapter every service uses (introduced in Phase 1).
 ## Status
 
 This document reflects the target architecture. As of the current milestone
-(see [ROADMAP.md](ROADMAP.md)), no service has been implemented yet — this is
-the blueprint Phase 1 (`identity-service`) is built against.
+(see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
+(Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9),
+`payment-service` (Phase 3, M11) and `notification-service` (Phase 3, M12)
+are implemented; `currency-service`, `search-service` and `gateway` are
+still planned.
+`flight-service` and `hotel-service` consume `booking-created` (M10) - the
+platform's first real cross-service event-driven integration, not just
+publish-and-forget. `payment-service` and `booking-service` extend that into
+a full choreography saga (M11, ADR 0010): booking-created triggers payment
+authorization, whose outcome confirms or compensates (cancels) the booking.
+`notification-service` (M12, ADR 0011) is the saga's terminal step: it
+consumes `booking-confirmed` and sends a confirmation email - the platform's
+first consumer with no domain events/outbox of its own, since nothing
+downstream reacts to "a notification was sent."

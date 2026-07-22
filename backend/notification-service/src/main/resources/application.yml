@@ -1,0 +1,77 @@
+quarkus:
+  application:
+    name: notification-service
+  http:
+    port: 8086
+  mongodb:
+    database: notification
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  kafka:
+    devservices:
+      # See booking-service/src/main/resources/application.yml for the rationale - tests use
+      # the in-memory connector (see %test below).
+      enabled: false
+
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+  messaging:
+    incoming:
+      booking-confirmed:
+        connector: smallrye-kafka
+        topic: booking-confirmed
+        group.id: notification-processor
+        auto.offset.reset: earliest
+    outgoing:
+      booking-confirmed-dlq:
+        connector: smallrye-kafka
+        topic: booking-confirmed.notification-processor.dlq
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    mongodb:
+      database: notification-test
+    log:
+      console:
+        json:
+          enabled: false
+  mp:
+    messaging:
+      incoming:
+        booking-confirmed:
+          connector: smallrye-in-memory
+      outgoing:
+        booking-confirmed-dlq:
+          connector: smallrye-in-memory
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}
+  kafka:
+    bootstrap:
+      servers: ${KAFKA_BOOTSTRAP_SERVERS}
