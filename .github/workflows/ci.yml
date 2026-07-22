@@ -51,7 +51,7 @@ jobs:
     name: Dependency scan (Trivy)
     strategy:
       matrix:
-        service: [identity-service, booking-service, flight-service, hotel-service]
+        service: [identity-service, booking-service, flight-service, hotel-service, payment-service]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
     name: Dockerfile lint (hadolint)
     strategy:
       matrix:
-        service: [identity-service, booking-service, flight-service, hotel-service]
+        service: [identity-service, booking-service, flight-service, hotel-service, payment-service]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
     needs: test
     strategy:
       matrix:
-        service: [identity-service, booking-service, flight-service, hotel-service]
+        service: [identity-service, booking-service, flight-service, hotel-service, payment-service]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

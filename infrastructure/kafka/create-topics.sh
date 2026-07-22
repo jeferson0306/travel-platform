@@ -31,5 +31,17 @@ create_topic "booking-cancelled"
 create_topic "booking-created.flight-inventory.dlq"
 create_topic "booking-created.hotel-inventory.dlq"
 
+# payment-service (see ROADMAP M11, docs/adr/0010-payment-saga.md)
+create_topic "payment-authorized"
+create_topic "payment-failed"
+create_topic "payment-refunded"
+
+# payment-service's consumer group on booking-created/booking-cancelled, and booking-service's
+# consumer group on payment-authorized/payment-failed - same DLQ-per-consumer-group pattern as M10.
+create_topic "booking-created.payment-processor.dlq"
+create_topic "booking-cancelled.payment-processor.dlq"
+create_topic "payment-authorized.booking-payment-outcome.dlq"
+create_topic "payment-failed.booking-payment-outcome.dlq"
+
 echo "Topics ready:"
 "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" --list

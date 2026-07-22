@@ -43,8 +43,10 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 ## Phase 3 — Cross-cutting services
 
-- [ ] **M11 — payment-service**: idempotency keys, saga coordination with
-      booking-service.
+- [x] **M11 — payment-service**: choreography saga with booking-service -
+      booking-created triggers payment authorization (simulated gateway),
+      whose outcome confirms or compensates (cancels) the booking;
+      booking-cancelled triggers a refund. Idempotent throughout (ADR 0010).
 - [ ] **M12 — notification-service**: email templates via SES (LocalStack),
       Kafka-driven delivery.
 - [ ] **M13 — search-service**: OpenSearch-backed autocomplete and geo

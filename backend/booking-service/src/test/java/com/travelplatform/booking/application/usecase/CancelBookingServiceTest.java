@@ -10,7 +10,9 @@ import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingNotFoundException;
 import com.travelplatform.booking.domain.booking.BookingReference;
 import com.travelplatform.booking.domain.booking.ItemType;
+import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +38,8 @@ class CancelBookingServiceTest {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1));
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new Money(new BigDecimal("95.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 
         service.cancel(new CancelBookingCommand(booking.id().value().toString()));

@@ -5,7 +5,9 @@ import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingReference;
 import com.travelplatform.booking.domain.booking.BookingStatus;
 import com.travelplatform.booking.domain.booking.ItemType;
+import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
+import java.math.BigDecimal;
 import java.util.Date;
 import org.bson.Document;
 
@@ -20,6 +22,8 @@ public final class BookingDocumentMapper {
                 .append("itemType", booking.reference().itemType().name())
                 .append("itemId", booking.reference().itemId())
                 .append("quantity", booking.reference().quantity())
+                .append("amountValue", booking.amount().amount().toPlainString())
+                .append("amountCurrency", booking.amount().currency())
                 .append("status", booking.status().name())
                 .append("createdAt", Date.from(booking.createdAt()));
     }
@@ -32,6 +36,9 @@ public final class BookingDocumentMapper {
                         ItemType.valueOf(document.getString("itemType")),
                         document.getString("itemId"),
                         document.getInteger("quantity")),
+                new Money(
+                        new BigDecimal(document.getString("amountValue")),
+                        document.getString("amountCurrency")),
                 BookingStatus.valueOf(document.getString("status")),
                 document.getDate("createdAt").toInstant());
     }

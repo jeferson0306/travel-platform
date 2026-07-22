@@ -10,6 +10,8 @@ public record BookingReceipt(
         String itemType,
         String itemId,
         int quantity,
+        String amount,
+        String currency,
         Instant createdAt) {
 
     public static BookingReceipt from(Booking booking) {
@@ -19,6 +21,8 @@ public record BookingReceipt(
                 booking.reference().itemType().name(),
                 booking.reference().itemId(),
                 booking.reference().quantity(),
+                booking.amount().amount().toPlainString(),
+                booking.amount().currency(),
                 booking.createdAt());
     }
 }

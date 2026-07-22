@@ -11,6 +11,7 @@ public final class Booking {
     private final BookingId id;
     private final TravelerId travelerId;
     private final BookingReference reference;
+    private final Money amount;
     private BookingStatus status;
     private final Instant createdAt;
     private final List<DomainEvent> domainEvents = new ArrayList<>();
@@ -19,23 +20,35 @@ public final class Booking {
             BookingId id,
             TravelerId travelerId,
             BookingReference reference,
+            Money amount,
             BookingStatus status,
             Instant createdAt) {
         this.id = id;
         this.travelerId = travelerId;
         this.reference = reference;
+        this.amount = amount;
         this.status = status;
         this.createdAt = createdAt;
     }
 
     /** Creates a new booking, recording a {@link BookingCreated} domain event. */
-    public static Booking create(TravelerId travelerId, BookingReference reference) {
+    public static Booking create(TravelerId travelerId, BookingReference reference, Money amount) {
         var createdAt = Instant.now();
         var booking =
                 new Booking(
-                        BookingId.newId(), travelerId, reference, BookingStatus.PENDING, createdAt);
+                        BookingId.newId(),
+                        travelerId,
+                        reference,
+                        amount,
+                        BookingStatus.PENDING,
+                        createdAt);
         booking.domainEvents.add(
-                new BookingCreated(booking.id, booking.travelerId, booking.reference, createdAt));
+                new BookingCreated(
+                        booking.id,
+                        booking.travelerId,
+                        booking.reference,
+                        booking.amount,
+                        createdAt));
         return booking;
     }
 
@@ -44,9 +57,10 @@ public final class Booking {
             BookingId id,
             TravelerId travelerId,
             BookingReference reference,
+            Money amount,
             BookingStatus status,
             Instant createdAt) {
-        return new Booking(id, travelerId, reference, status, createdAt);
+        return new Booking(id, travelerId, reference, amount, status, createdAt);
     }
 
     /** Cancels the booking, recording a {@link BookingCancelled} domain event. */
@@ -56,6 +70,18 @@ public final class Booking {
         }
         status = BookingStatus.CANCELLED;
         domainEvents.add(new BookingCancelled(id, travelerId, Instant.now()));
+    }
+
+    /**
+     * Confirms the booking once payment-service reports the payment authorized (ROADMAP M11). No
+     * domain event yet - nothing consumes a "booking confirmed" event today; add one when
+     * notification-service (or similar) needs it.
+     */
+    public void confirm() {
+        if (status == BookingStatus.CONFIRMED) {
+            throw new BookingAlreadyConfirmedException(id);
+        }
+        status = BookingStatus.CONFIRMED;
     }
 
     public BookingId id() {
@@ -68,6 +94,10 @@ public final class Booking {
 
     public BookingReference reference() {
         return reference;
+    }
+
+    public Money amount() {
+        return amount;
     }
 
     public BookingStatus status() {

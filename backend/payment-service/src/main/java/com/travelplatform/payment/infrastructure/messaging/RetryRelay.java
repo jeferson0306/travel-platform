@@ -1,0 +1,143 @@
+package com.travelplatform.payment.infrastructure.messaging;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+import com.travelplatform.payment.application.port.in.AuthorizePaymentUseCase;
+import com.travelplatform.payment.application.port.in.AuthorizePaymentUseCase.AuthorizePaymentCommand;
+import com.travelplatform.payment.application.port.in.RefundPaymentUseCase;
+import com.travelplatform.payment.application.port.in.RefundPaymentUseCase.RefundPaymentCommand;
+import io.quarkus.scheduler.Scheduled;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Date;
+import org.bson.Document;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import org.jboss.logging.Logger;
+
+/**
+ * Retries {@code retry_tasks} left behind by {@link BookingCreatedConsumer}/{@link
+ * BookingCancelledConsumer} with exponential backoff, dispatching on the task's {@code action}
+ * field. After {@link #MAX_ATTEMPTS} failed attempts, the task is moved to a {@code dead_letters}
+ * collection and a summary is published to the DLQ topic matching its originating topic/consumer
+ * group - see docs/adr/0004-use-kafka-for-event-driven-communication.md's M10 addendum.
+ */
+@ApplicationScoped
+public class RetryRelay {
+
+    private static final Logger LOG = Logger.getLogger(RetryRelay.class);
+    private static final int MAX_ATTEMPTS = 5;
+    private static final long BASE_BACKOFF_SECONDS = 10;
+
+    private final MongoCollection<Document> retryTasks;
+    private final MongoCollection<Document> deadLetters;
+    private final AuthorizePaymentUseCase authorizePaymentUseCase;
+    private final RefundPaymentUseCase refundPaymentUseCase;
+    private final Emitter<String> bookingCreatedDlqEmitter;
+    private final Emitter<String> bookingCancelledDlqEmitter;
+
+    public RetryRelay(
+            MongoClient mongoClient,
+            @ConfigProperty(name = "payment.mongo.database", defaultValue = "payment")
+                    String database,
+            AuthorizePaymentUseCase authorizePaymentUseCase,
+            RefundPaymentUseCase refundPaymentUseCase,
+            @Channel("booking-created-dlq") Emitter<String> bookingCreatedDlqEmitter,
+            @Channel("booking-cancelled-dlq") Emitter<String> bookingCancelledDlqEmitter) {
+        var db = mongoClient.getDatabase(database);
+        this.retryTasks = db.getCollection("retry_tasks");
+        this.deadLetters = db.getCollection("dead_letters");
+        this.authorizePaymentUseCase = authorizePaymentUseCase;
+        this.refundPaymentUseCase = refundPaymentUseCase;
+        this.bookingCreatedDlqEmitter = bookingCreatedDlqEmitter;
+        this.bookingCancelledDlqEmitter = bookingCancelledDlqEmitter;
+    }
+
+    @Scheduled(every = "10s")
+    void relay() {
+        for (Document task :
+                retryTasks.find(Filters.lte("nextAttemptAt", Date.from(Instant.now())))) {
+            attempt(task);
+        }
+    }
+
+    private void attempt(Document task) {
+        var id = task.getString("_id");
+        var action = task.getString("action");
+        var bookingId = task.getString("bookingId");
+        var attempts = task.getInteger("attempts") + 1;
+
+        boolean succeeded;
+        try {
+            dispatch(action, bookingId, task);
+            succeeded = true;
+        } catch (RuntimeException e) {
+            LOG.error("Retry attempt " + attempts + " failed for booking " + bookingId, e);
+            succeeded = false;
+        }
+
+        if (succeeded) {
+            retryTasks.deleteOne(Filters.eq("_id", id));
+            return;
+        }
+
+        if (attempts >= MAX_ATTEMPTS) {
+            deadLetter(task, attempts, action);
+            retryTasks.deleteOne(Filters.eq("_id", id));
+            return;
+        }
+
+        var backoffSeconds = BASE_BACKOFF_SECONDS * (1L << attempts);
+        retryTasks.updateOne(
+                Filters.eq("_id", id),
+                Updates.combine(
+                        Updates.set("attempts", attempts),
+                        Updates.set(
+                                "nextAttemptAt",
+                                Date.from(Instant.now().plusSeconds(backoffSeconds)))));
+    }
+
+    private void dispatch(String action, String bookingId, Document task) {
+        if ("booking-created".equals(action)) {
+            var amount = new BigDecimal(task.getString("amountValue"));
+            var currency = task.getString("amountCurrency");
+            authorizePaymentUseCase.authorize(
+                    new AuthorizePaymentCommand(bookingId, amount, currency));
+        } else {
+            refundPaymentUseCase.refund(new RefundPaymentCommand(bookingId));
+        }
+    }
+
+    private void deadLetter(Document task, int attempts, String action) {
+        var bookingId = task.getString("bookingId");
+        deadLetters.insertOne(
+                new Document(task)
+                        .append("attempts", attempts)
+                        .append("deadLetteredAt", Date.from(Instant.now())));
+        LOG.error(
+                "Booking "
+                        + bookingId
+                        + " ("
+                        + action
+                        + ") moved to DLQ after "
+                        + attempts
+                        + " attempts");
+
+        var emitter =
+                "booking-created".equals(action)
+                        ? bookingCreatedDlqEmitter
+                        : bookingCancelledDlqEmitter;
+        emitter.send(
+                "{\"bookingId\":\""
+                        + bookingId
+                        + "\",\"action\":\""
+                        + action
+                        + "\",\"attempts\":"
+                        + attempts
+                        + "}");
+    }
+}

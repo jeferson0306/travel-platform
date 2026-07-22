@@ -52,3 +52,13 @@ and this project uses milestone-based versioning as defined in
   bucket. `booking-service` writes a JSON receipt to it (best-effort, not
   transactional with the booking write) on booking creation (ADR 0008,
   ADR 0009).
+- `payment-service`: choreography saga with `booking-service` (M11, ADR
+  0010). `booking-created` (now carrying `amount`) triggers a simulated
+  payment authorization; the outcome (`payment-authorized`/`payment-failed`)
+  confirms or compensates (cancels) the booking - the cancel path reuses
+  `CancelBookingUseCase` directly. `booking-cancelled` triggers a refund.
+  Idempotent throughout: payment-service claims bookingIds like the M10
+  inventory consumers, while booking-service relies on
+  `Booking.confirm()`/`cancel()` already rejecting a repeat call. Same
+  Mongo-backed retry/DLQ pattern as M10. `ci.yml`'s matrix now covers all
+  five services.
