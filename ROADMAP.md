@@ -22,8 +22,10 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       still open: mutation testing (PIT) and a JaCoCo coverage gate in CI.
 - [x] **M6 — Observability baseline**: structured JSON logs with
       trace/span/correlation IDs, health checks, metrics exposed.
-- [ ] **M7 — CI pipeline v1**: lint, test, coverage, security scan, Docker
-      build, running end-to-end on every PR.
+- [x] **M7 — CI pipeline v1**: lint, test, security scan, Docker build,
+      running end-to-end on every PR. Coverage gate deliberately deferred
+      to the M5 close-out (see M5) so it isn't re-tuned on every change
+      while the test suite is still actively growing.
 
 ## Phase 2 — Core domains
 
