@@ -11,6 +11,7 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +44,12 @@ class BookingResourceTest {
                 given().contentType("application/json")
                         .body(
                                 new CreateBookingRequest(
-                                        travelerId, "FLIGHT", UUID.randomUUID().toString(), 2))
+                                        travelerId,
+                                        "FLIGHT",
+                                        UUID.randomUUID().toString(),
+                                        2,
+                                        new BigDecimal("450.00"),
+                                        "EUR"))
                         .when()
                         .post("/api/v1/bookings")
                         .then()
@@ -77,7 +83,12 @@ class BookingResourceTest {
                 given().contentType("application/json")
                         .body(
                                 new CreateBookingRequest(
-                                        travelerId, "HOTEL", UUID.randomUUID().toString(), 1))
+                                        travelerId,
+                                        "HOTEL",
+                                        UUID.randomUUID().toString(),
+                                        1,
+                                        new BigDecimal("95.00"),
+                                        "EUR"))
                         .post("/api/v1/bookings")
                         .then()
                         .extract()
@@ -123,7 +134,12 @@ class BookingResourceTest {
         given().contentType("application/json")
                 .body(
                         new CreateBookingRequest(
-                                "not-a-uuid", "HOTEL", UUID.randomUUID().toString(), 1))
+                                "not-a-uuid",
+                                "HOTEL",
+                                UUID.randomUUID().toString(),
+                                1,
+                                new BigDecimal("95.00"),
+                                "EUR"))
                 .when()
                 .post("/api/v1/bookings")
                 .then()

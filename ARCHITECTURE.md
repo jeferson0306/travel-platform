@@ -104,8 +104,11 @@ shared logging adapter every service uses (introduced in Phase 1).
 
 This document reflects the target architecture. As of the current milestone
 (see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
-(Phase 2, M8), `flight-service` and `hotel-service` (Phase 2, M9) are
-implemented; `payment-service`, `currency-service`, `notification-service`,
-`search-service` and `gateway` are still planned. `flight-service` and
-`hotel-service` also consume `booking-created` (M10) - the platform's first
-real cross-service event-driven integration, not just publish-and-forget.
+(Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9) and
+`payment-service` (Phase 3, M11) are implemented; `currency-service`,
+`notification-service`, `search-service` and `gateway` are still planned.
+`flight-service` and `hotel-service` consume `booking-created` (M10) - the
+platform's first real cross-service event-driven integration, not just
+publish-and-forget. `payment-service` and `booking-service` extend that into
+a full choreography saga (M11, ADR 0010): booking-created triggers payment
+authorization, whose outcome confirms or compensates (cancels) the booking.

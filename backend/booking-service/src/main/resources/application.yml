@@ -36,12 +36,33 @@ booking:
 
 mp:
   messaging:
+    incoming:
+      payment-authorized:
+        connector: smallrye-kafka
+        topic: payment-authorized
+        group.id: booking-payment-outcome
+        auto.offset.reset: earliest
+      payment-failed:
+        connector: smallrye-kafka
+        topic: payment-failed
+        group.id: booking-payment-outcome
+        auto.offset.reset: earliest
     outgoing:
       booking-events:
         connector: smallrye-kafka
         # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
         # default only satisfies config validation and is never actually used.
         topic: booking-events-default
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+      payment-authorized-dlq:
+        connector: smallrye-kafka
+        topic: payment-authorized.booking-payment-outcome.dlq
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+      payment-failed-dlq:
+        connector: smallrye-kafka
+        topic: payment-failed.booking-payment-outcome.dlq
         value:
           serializer: org.apache.kafka.common.serialization.StringSerializer
 
@@ -76,8 +97,17 @@ mp:
         secret-access-key: test
   mp:
     messaging:
+      incoming:
+        payment-authorized:
+          connector: smallrye-in-memory
+        payment-failed:
+          connector: smallrye-in-memory
       outgoing:
         booking-events:
+          connector: smallrye-in-memory
+        payment-authorized-dlq:
+          connector: smallrye-in-memory
+        payment-failed-dlq:
           connector: smallrye-in-memory
 
 "%prod":

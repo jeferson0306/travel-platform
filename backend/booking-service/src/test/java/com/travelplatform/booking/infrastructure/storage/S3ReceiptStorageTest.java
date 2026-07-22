@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingReference;
 import com.travelplatform.booking.domain.booking.ItemType;
+import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,6 +70,7 @@ class S3ReceiptStorageTest {
     private Booking aBooking() {
         return Booking.create(
                 new TravelerId(UUID.randomUUID()),
-                new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2));
+                new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2),
+                new Money(new BigDecimal("450.00"), "EUR"));
     }
 }

@@ -8,6 +8,7 @@ import com.travelplatform.booking.application.port.in.CreateBookingUseCase.Creat
 import com.travelplatform.booking.application.port.out.BookingRepository;
 import com.travelplatform.booking.application.port.out.ReceiptStorage;
 import com.travelplatform.booking.domain.booking.Booking;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,12 @@ class CreateBookingServiceTest {
         var bookingId =
                 service.create(
                         new CreateBookingCommand(
-                                travelerId, "FLIGHT", UUID.randomUUID().toString(), 2));
+                                travelerId,
+                                "FLIGHT",
+                                UUID.randomUUID().toString(),
+                                2,
+                                new BigDecimal("450.00"),
+                                "EUR"));
 
         assertThat(bookingId).isNotNull();
         verify(bookingRepository).save(any(Booking.class));

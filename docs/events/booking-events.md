@@ -9,6 +9,7 @@ Published by `booking-service` when a booking is created (`POST /api/v1/bookings
 | `bookingId`  | object (`BookingId`)        | The new booking's id                       |
 | `travelerId` | object (`TravelerId`)       | Owning traveler (identity-service user id) |
 | `reference`  | object (`BookingReference`) | What is being booked - see below           |
+| `amount`     | object (`Money`)            | What the booking costs (ROADMAP M11)       |
 | `occurredOn` | timestamp                   | When the booking was created               |
 
 `reference` is structured (ROADMAP M10, once flight-service/hotel-service
@@ -26,6 +27,11 @@ Consumers:
   `availableSeats` when `itemType` is `FLIGHT`.
 - `hotel-service` (consumer group `hotel-inventory`) - decrements
   `availableRooms` when `itemType` is `HOTEL`.
+- `payment-service` (consumer group `payment-processor`) - authorizes
+  payment for `amount`, publishing `payment-authorized`/`payment-failed`
+  (ROADMAP M11, see
+  [docs/adr/0010-payment-saga.md](../adr/0010-payment-saga.md) and
+  [docs/events/payment-events.md](payment-events.md)).
 - Planned: `notification-service` (confirmation email), `search-service`
   (once it exists).
 
@@ -40,11 +46,10 @@ Published by `booking-service` when a booking is cancelled
 | `travelerId` | object (`TravelerId`) | Owning traveler                |
 | `occurredOn` | timestamp             | When the cancellation happened |
 
-No consumer exists yet. Planned consumer: `payment-service` (refund, once
-it exists - M11). Restoring the flight/hotel inventory a cancelled booking
-had reserved is deliberately out of scope until then - it needs the same
-idempotency and retry story as the decrement path below, and there is no
-consumer to build it against yet.
+Consumer: `payment-service` (consumer group `payment-processor`) - refunds
+the booking's payment if one was authorized, publishing `payment-refunded`
+(ROADMAP M11). Restoring the flight/hotel inventory a cancelled booking had
+reserved is still out of scope - no consumer for it yet.
 
 ## Delivery guarantees
 
@@ -72,5 +77,10 @@ A consumer may see the same event more than once and must be idempotent.
   to a per-consumer-group DLQ topic (`booking-created.flight-inventory.dlq`,
   `booking-created.hotel-inventory.dlq`) for external visibility.
 
-`booking-cancelled` has no consumer yet, so there is nothing to retry or
-dead-letter for it.
+`payment-service`'s consumers for both `booking-created` and
+`booking-cancelled` (own consumer group `payment-processor`, ROADMAP M11)
+follow the exact same idempotency/retry/DLQ shape described above, against
+their own `booking-created.payment-processor.dlq`/
+`booking-cancelled.payment-processor.dlq` topics (see
+[docs/events/payment-events.md](payment-events.md) and
+[docs/adr/0010-payment-saga.md](../adr/0010-payment-saga.md)).
