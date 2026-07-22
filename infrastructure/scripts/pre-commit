@@ -1,8 +1,43 @@
 #!/usr/bin/env bash
-# Blocks a commit if gitleaks finds a likely secret in staged changes.
+# Runs on every commit:
+#   1. Auto-format staged files (Prettier for yaml/json/md, Spotless/google-java-format
+#      for Java) and re-stage the formatted result, so formatting is never a
+#      separate manual step.
+#   2. Scan the (now formatted) staged diff for secrets with gitleaks and abort
+#      the commit if anything is found.
 # Installed into .git/hooks/pre-commit by infrastructure/scripts/install-git-hooks.sh
 set -euo pipefail
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+staged_files() {
+  git diff --cached --name-only --diff-filter=ACM
+}
+
+# ---- 1a. Prettier: yaml / json / markdown ----
+prettier_targets="$(staged_files | grep -E '\.(ya?ml|json|md)$' || true)"
+if [ -n "$prettier_targets" ]; then
+  if [ -x node_modules/.bin/prettier ]; then
+    echo "$prettier_targets" | xargs node_modules/.bin/prettier --write --ignore-unknown
+    echo "$prettier_targets" | xargs git add
+  else
+    echo "WARNING: prettier not installed (run: npm install) - formatting SKIPPED for yaml/json/md."
+  fi
+fi
+
+# ---- 1b. Spotless: Java ----
+java_targets="$(staged_files | grep -E '\.java$' || true)"
+if [ -n "$java_targets" ]; then
+  if command -v mvn >/dev/null 2>&1 && [ -f backend/pom.xml ]; then
+    mvn -q -f backend/pom.xml spotless:apply
+    echo "$java_targets" | xargs git add
+  else
+    echo "WARNING: Maven or backend/pom.xml not found - formatting SKIPPED for Java."
+  fi
+fi
+
+# ---- 2. Secret scan ----
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "-------------------------------------------------------------"
   echo "WARNING: gitleaks is not installed - secret scan was SKIPPED."

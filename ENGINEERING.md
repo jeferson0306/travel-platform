@@ -29,15 +29,15 @@ except through a release PR from a stable `develop`.
 
 ## Testing strategy
 
-| Level | Tool | Runs |
-|---|---|---|
-| Unit | JUnit 5, Mockito, AssertJ | every build, seconds |
-| Integration | Testcontainers (Mongo, Kafka, Redis), WireMock | every PR |
-| Architecture | ArchUnit | every PR |
-| Contract | OpenAPI validation, Pact | every PR touching an API |
-| Mutation | PIT | scheduled / pre-release, not on every PR (too slow) |
-| Load / stress / spike / soak | k6, Gatling | scheduled, pre-release |
-| Chaos | Toxiproxy | scheduled, pre-release |
+| Level                        | Tool                                           | Runs                                                |
+| ---------------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| Unit                         | JUnit 5, Mockito, AssertJ                      | every build, seconds                                |
+| Integration                  | Testcontainers (Mongo, Kafka, Redis), WireMock | every PR                                            |
+| Architecture                 | ArchUnit                                       | every PR                                            |
+| Contract                     | OpenAPI validation, Pact                       | every PR touching an API                            |
+| Mutation                     | PIT                                            | scheduled / pre-release, not on every PR (too slow) |
+| Load / stress / spike / soak | k6, Gatling                                    | scheduled, pre-release                              |
+| Chaos                        | Toxiproxy                                      | scheduled, pre-release                              |
 
 Rationale for tiering: fast feedback loops stay in the PR gate; expensive
 suites (mutation, load, chaos) run on a schedule or before a release so the

@@ -38,12 +38,13 @@ dist-ssr/
 *.local
 .vite/
 
-# ---- IDE ----
+# ---- IDE / local tooling ----
 .idea/
 *.iml
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+.claude/
 
 # ---- Logs ----
 *.log

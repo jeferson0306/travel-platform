@@ -69,18 +69,33 @@ Rules:
   smaller PRs against `develop` when possible.
 - CI (lint, tests, coverage, security scans) must be green before merge.
 
+## Formatting
+
+Formatting is automatic, not a manual step or a matter of taste:
+
+- The pre-commit hook (`infrastructure/scripts/pre-commit`, installed by
+  `make setup`) auto-formats every staged file before the commit is created —
+  Prettier for YAML/JSON/Markdown, Spotless (google-java-format) for Java —
+  and re-stages the result. A commit is always formatted by the time it
+  exists.
+- CI (`.github/workflows/lint.yml`) re-checks formatting on every push/PR as
+  a safety net for a commit made with hooks bypassed or not installed. It
+  should never fail in normal use; if it does, hooks were skipped somewhere.
+- Run it manually any time with `npm run format` (web files) or
+  `mvn -f backend/pom.xml spotless:apply` (Java).
+
 ## Code style
 
-- Backend (Java/Quarkus): follow the formatting and static analysis rules
-  enforced by Checkstyle/PMD/SpotBugs in the build — see
+- Backend (Java/Quarkus): beyond formatting, static analysis rules
+  (Checkstyle/PMD/SpotBugs) are enforced in the build — see
   [docs/development](docs/development).
-- Frontend (React/TypeScript): follow the project's ESLint/Prettier config.
+- Frontend (React/TypeScript): follow the project's ESLint config.
 - All identifiers, comments, and log messages are in English. User-facing text
   goes through i18n (PT/EN/ES), never hardcoded strings.
 
 ## Architecture changes
 
 Any change that introduces a new dependency, a new service boundary, or
-deviates from an existing pattern needs an ADR in `docs/adr/` *before* the
+deviates from an existing pattern needs an ADR in `docs/adr/` _before_ the
 implementation PR, following the template in
 [docs/adr/0001-record-architecture-decisions.md](docs/adr/0001-record-architecture-decisions.md).
