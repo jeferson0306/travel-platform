@@ -38,7 +38,11 @@ public class BookingResource {
     public Response create(@Valid CreateBookingRequest request) {
         var id =
                 createBookingUseCase.create(
-                        new CreateBookingCommand(request.travelerId(), request.reference()));
+                        new CreateBookingCommand(
+                                request.travelerId(),
+                                request.itemType(),
+                                request.itemId(),
+                                request.quantity()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();

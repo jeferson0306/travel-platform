@@ -6,5 +6,5 @@ public interface CreateBookingUseCase {
 
     BookingId create(CreateBookingCommand command);
 
-    record CreateBookingCommand(String travelerId, String reference) {}
+    record CreateBookingCommand(String travelerId, String itemType, String itemId, int quantity) {}
 }

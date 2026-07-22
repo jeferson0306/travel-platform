@@ -12,7 +12,7 @@ class BookingTest {
     @Test
     void createRaisesBookingCreatedAndStartsPending() {
         var travelerId = new TravelerId(UUID.randomUUID());
-        var reference = new BookingReference("flight-LIS-GRU-2026-08-01");
+        var reference = new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2);
 
         var booking = Booking.create(travelerId, reference);
 
@@ -34,7 +34,8 @@ class BookingTest {
     void cancelRaisesBookingCancelledAndChangesStatus() {
         var booking =
                 Booking.create(
-                        new TravelerId(UUID.randomUUID()), new BookingReference("hotel-lisbon"));
+                        new TravelerId(UUID.randomUUID()),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1));
         booking.pullDomainEvents();
 
         booking.cancel();
@@ -52,7 +53,8 @@ class BookingTest {
     void cancelTwiceThrows() {
         var booking =
                 Booking.create(
-                        new TravelerId(UUID.randomUUID()), new BookingReference("hotel-lisbon"));
+                        new TravelerId(UUID.randomUUID()),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1));
         booking.cancel();
 
         assertThatThrownBy(booking::cancel).isInstanceOf(BookingAlreadyCancelledException.class);
@@ -64,7 +66,7 @@ class BookingTest {
                 Booking.reconstitute(
                         BookingId.newId(),
                         new TravelerId(UUID.randomUUID()),
-                        new BookingReference("hotel-lisbon"),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         BookingStatus.PENDING,
                         Instant.now());
 

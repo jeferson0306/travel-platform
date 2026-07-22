@@ -41,7 +41,9 @@ class BookingResourceTest {
 
         var bookingId =
                 given().contentType("application/json")
-                        .body(new CreateBookingRequest(travelerId, "flight-LIS-GRU-2026-08-01"))
+                        .body(
+                                new CreateBookingRequest(
+                                        travelerId, "FLIGHT", UUID.randomUUID().toString(), 2))
                         .when()
                         .post("/api/v1/bookings")
                         .then()
@@ -73,7 +75,9 @@ class BookingResourceTest {
 
         var bookingId =
                 given().contentType("application/json")
-                        .body(new CreateBookingRequest(travelerId, "hotel-lisbon"))
+                        .body(
+                                new CreateBookingRequest(
+                                        travelerId, "HOTEL", UUID.randomUUID().toString(), 1))
                         .post("/api/v1/bookings")
                         .then()
                         .extract()
@@ -117,7 +121,9 @@ class BookingResourceTest {
     @Test
     void rejectsInvalidPayload() {
         given().contentType("application/json")
-                .body(new CreateBookingRequest("not-a-uuid", "hotel-lisbon"))
+                .body(
+                        new CreateBookingRequest(
+                                "not-a-uuid", "HOTEL", UUID.randomUUID().toString(), 1))
                 .when()
                 .post("/api/v1/bookings")
                 .then()

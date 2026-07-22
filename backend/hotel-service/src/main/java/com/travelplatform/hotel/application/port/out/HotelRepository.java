@@ -13,4 +13,11 @@ public interface HotelRepository {
     Optional<Hotel> findById(HotelId id);
 
     List<Hotel> search(City city);
+
+    /**
+     * Atomically decrements {@code availableRooms} by {@code quantity} if and only if enough rooms
+     * are available. Returns false (no-op) if the hotel does not exist or has insufficient rooms -
+     * the caller decides what that means (retry, dead-letter, ...).
+     */
+    boolean tryReserve(HotelId id, int quantity);
 }

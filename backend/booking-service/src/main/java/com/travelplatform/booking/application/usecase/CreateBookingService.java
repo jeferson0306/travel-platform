@@ -5,6 +5,7 @@ import com.travelplatform.booking.application.port.out.BookingRepository;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingReference;
+import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.TravelerId;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -22,7 +23,10 @@ public class CreateBookingService implements CreateBookingUseCase {
         var booking =
                 Booking.create(
                         TravelerId.of(command.travelerId()),
-                        new BookingReference(command.reference()));
+                        new BookingReference(
+                                ItemType.valueOf(command.itemType()),
+                                command.itemId(),
+                                command.quantity()));
         bookingRepository.save(booking);
         return booking.id();
     }
