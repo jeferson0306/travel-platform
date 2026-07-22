@@ -47,3 +47,8 @@ and this project uses milestone-based versioning as defined in
   a Mongo-backed retry queue and exponential backoff, moving to a
   dead-letter Kafka topic per consumer group after too many attempts (M10,
   ADR 0004 addendum).
+- AWS resources are now provisioned with Terraform against LocalStack
+  (`infrastructure/terraform`), starting with a `booking-receipts` S3
+  bucket. `booking-service` writes a JSON receipt to it (best-effort, not
+  transactional with the booking write) on booking creation (ADR 0008,
+  ADR 0009).

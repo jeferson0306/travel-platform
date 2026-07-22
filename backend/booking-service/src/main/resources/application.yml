@@ -25,6 +25,15 @@ quarkus:
       # Leaving Dev Services on would start a second, unused Kafka per test run.
       enabled: false
 
+booking:
+  aws:
+    receipts-bucket: booking-receipts
+    s3:
+      region: ${AWS_REGION:us-east-1}
+      # Empty (default) means "use the AWS SDK's default endpoint/credential chain" - a real AWS
+      # account. Only overridden below for %dev/%test, which point at LocalStack instead - see
+      # docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md.
+
 mp:
   messaging:
     outgoing:
@@ -42,6 +51,14 @@ mp:
       console:
         json:
           enabled: false
+  booking:
+    aws:
+      s3:
+        # LocalStack, not real AWS. The credentials are the well-known LocalStack fake pair
+        # (test/test), not a secret - see SECURITY.md.
+        endpoint-override: http://localhost:4566
+        access-key-id: test
+        secret-access-key: test
 
 "%test":
   quarkus:
@@ -51,6 +68,12 @@ mp:
       console:
         json:
           enabled: false
+  booking:
+    aws:
+      s3:
+        endpoint-override: http://localhost:4566
+        access-key-id: test
+        secret-access-key: test
   mp:
     messaging:
       outgoing:

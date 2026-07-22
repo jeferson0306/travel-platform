@@ -74,6 +74,17 @@ as they are introduced in [docs/asyncapi](docs/asyncapi) and
 [docs/events](docs/events). See ADR
 [0004](docs/adr/0004-use-kafka-for-event-driven-communication.md).
 
+## AWS resources
+
+Where a need is naturally AWS-shaped rather than message-shaped (durable
+object storage, later transactional email/config/secrets), resources are
+provisioned with Terraform against LocalStack locally and a real AWS
+account otherwise - see ADR
+[0008](docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md).
+First resource: an S3 bucket (`booking-receipts`) that `booking-service`
+writes a JSON booking confirmation to - ADR
+[0009](docs/adr/0009-booking-receipts-in-s3.md).
+
 ## Resilience
 
 Every outbound call (service-to-service REST, database, cache, external API)
