@@ -32,3 +32,10 @@ and this project uses milestone-based versioning as defined in
   `booking-cancelled` published to Kafka (M8, ADR 0007). Local MongoDB is
   now a single-node replica set (required for transactions); Kafka topics
   are created by `infrastructure/kafka/create-topics.sh`.
+- `flight-service` and `hotel-service`: inventory create/search, first
+  services to actually verify JWTs issued by `identity-service` (M9). Token
+  signing moved from an HS256 shared secret to RS256 with identity-service
+  holding the only private key (ADR 0006 addendum) - the shared-secret
+  approach's verification path was found unreliable in the installed
+  SmallRye JWT version. `ci.yml`'s per-service matrix now covers all four
+  services.

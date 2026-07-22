@@ -48,3 +48,30 @@ Rules:
   [docs/architecture/error-handling.md](../architecture/error-handling.md)
   is raised whenever an authenticated request's role doesn't satisfy an
   endpoint's requirement.
+
+## Addendum (M9) — RS256, not a shared HMAC secret
+
+Signing was originally HS256 with a secret shared via `JWT_SECRET` across
+every service (matching the local dev default already in `.env.example`).
+Implementing verification in `flight-service` (the first consumer) surfaced
+two problems with that: architecturally, every verifying service would need
+the same signing secret, meaning any of them leaking it lets that service
+forge tokens for every role - a much larger blast radius than an
+architecture where only `identity-service` can ever sign. Practically, the
+installed SmallRye JWT version's HS256 verification path
+(`smallrye.jwt.verify.secretkey`) never actually resolved a request-time
+verification key from that config in testing - it consistently failed with
+"Verification key is unresolvable", with no combination of the documented
+config properties observed to fix it.
+
+Switched to RS256: `identity-service` signs with an RSA private key
+(`smallrye.jwt.sign.key.location=privateKey.pem`); every verifying service
+only needs the public key (`mp.jwt.verify.publickey.location=publicKey.pem`).
+The keypair committed under each service's `src/main/resources` is a
+dev/test fixture (same status as the HS256 default it replaces) - a real
+deployment mounts its own key material via the same properties. Only
+`identity-service`'s copy of `privateKey.pem` matters for security; the
+public key is not sensitive by design, and a consuming service's test
+suite may hold a copy of the private key purely to mint synthetic tokens
+without running identity-service - it has no way to reach a real key
+because it's the same test fixture, not a production secret.
