@@ -85,6 +85,14 @@ exercised indirectly by its integration tests, not meaningfully
 unit-testable in isolation. Same "floor, not target" philosophy, just a
 different measured number - see docs/adr/0012-search-service-opensearch.md.
 
+`gateway` overrides the floor down to 0.01 - not because it is undertested
+(all 14 tests exercise every class through real HTTP calls into a running
+instance) but because JaCoCo's javaagent cannot see most of that execution:
+`@Route`-handled requests run through `quarkus-reactive-routes`-generated
+invokers rather than plain instrumented bytecode paths, the same category
+of tooling gap as the PIT/Java 25 issue below. See
+docs/adr/0013-api-gateway.md.
+
 ## Testing against OpenSearch - no Dev Services
 
 Every other service's integration tests lean on Quarkus Dev Services

@@ -1,0 +1,72 @@
+quarkus:
+  application:
+    name: gateway
+  http:
+    port: 8080
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:5173}
+      methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      headers: Authorization,Content-Type,X-Correlation-Id
+      exposed-headers: X-Correlation-Id
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  # No quarkus.redis.hosts here on purpose: leaving it unset lets Redis Dev Services provision an
+  # ephemeral container automatically for %dev/%test, same as MongoDB/Kafka elsewhere in this
+  # platform - only %prod below points at a real Redis.
+
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+
+gateway:
+  rate-limit:
+    requests-per-minute: 120
+  upstream:
+    identity: ${GATEWAY_UPSTREAM_IDENTITY:http://localhost:8081}
+    booking: ${GATEWAY_UPSTREAM_BOOKING:http://localhost:8082}
+    flight: ${GATEWAY_UPSTREAM_FLIGHT:http://localhost:8083}
+    hotel: ${GATEWAY_UPSTREAM_HOTEL:http://localhost:8084}
+    payment: ${GATEWAY_UPSTREAM_PAYMENT:http://localhost:8085}
+    notification: ${GATEWAY_UPSTREAM_NOTIFICATION:http://localhost:8086}
+    search: ${GATEWAY_UPSTREAM_SEARCH:http://localhost:8087}
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%prod":
+  quarkus:
+    redis:
+      hosts: ${REDIS_URL}
+  gateway:
+    upstream:
+      identity: http://identity-service:8081
+      booking: http://booking-service:8082
+      flight: http://flight-service:8083
+      hotel: http://hotel-service:8084
+      payment: http://payment-service:8085
+      notification: http://notification-service:8086
+      search: http://search-service:8087
