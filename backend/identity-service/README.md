@@ -38,6 +38,23 @@ HTTP against a real MongoDB, started automatically by Quarkus Dev Services
 enforces with ArchUnit that dependencies only point inward and that the
 domain package never references a framework type.
 
+## Observability
+
+- Logs are structured JSON in every profile except `%dev` (human-readable
+  there for local debugging). Every request log line carries `correlationId`,
+  `requestId`, `userId` (when authenticated), `method`, `uri`, `status` and
+  `durationMs` - see `RequestLoggingFilter` and the
+  [observability contract](../../ARCHITECTURE.md#observability-contract).
+  A caller-supplied `X-Correlation-Id` header is honored and echoed back;
+  otherwise one is generated.
+- OpenTelemetry is enabled with no exporter configured (`quarkus.otel.traces.exporter=none`)
+  - spans exist and populate `traceId`/`spanId` in the logs, but nothing is
+    shipped anywhere until Tempo/Jaeger is wired up in
+    `infrastructure/monitoring` (ROADMAP M16).
+- Health: `/health`, `/health/ready` (includes MongoDB connectivity),
+  `/health/live`.
+- Metrics: Prometheus format at `/q/metrics`.
+
 ## Configuration
 
 See `src/main/resources/application.yml`. Notable environment variables
