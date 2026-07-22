@@ -1,0 +1,29 @@
+quarkus:
+  application:
+    name: identity-service
+  http:
+    port: 8081
+  mongodb:
+    database: identity
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+
+identity:
+  jwt:
+    issuer: travel-platform-identity
+    ttl-seconds: 3600
+    # Local/dev default only - never a real secret. Overridden by JWT_SECRET in every
+    # real environment. See .env.example and SECURITY.md.
+    secret: ${JWT_SECRET:local-dev-only-insecure-default-secret-do-not-use-in-prod}
+
+"%test":
+  quarkus:
+    mongodb:
+      database: identity-test
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}

@@ -13,3 +13,7 @@ and this project uses milestone-based versioning as defined in
 - Repository scaffolding: branching model, contribution guidelines, security
   policy, ADR process, base local infrastructure (MongoDB, Redis, Kafka,
   LocalStack).
+- Automatic formatting (Prettier, Spotless/google-java-format) enforced at
+  commit time and re-checked in CI.
+- `identity-service`: user registration and login, hexagonal package
+  structure, JWT issuance, unit/integration/ArchUnit tests (M4).
