@@ -27,3 +27,8 @@ and this project uses milestone-based versioning as defined in
   scan (Trivy), Dockerfile lint (hadolint), Docker image build and scan,
   fail-fast ordered (M7). `identity-service`'s Dockerfile.jvm base image
   fixed to a Java 25 runtime (the generated default targeted Java 21).
+- `booking-service`: create/cancel a booking, transactional outbox pattern
+  (MongoDB multi-document transaction + scheduled relay), `booking-created`/
+  `booking-cancelled` published to Kafka (M8, ADR 0007). Local MongoDB is
+  now a single-node replica set (required for transactions); Kafka topics
+  are created by `infrastructure/kafka/create-topics.sh`.

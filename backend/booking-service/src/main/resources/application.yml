@@ -1,0 +1,66 @@
+quarkus:
+  application:
+    name: booking-service
+  http:
+    port: 8082
+  mongodb:
+    database: booking
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  kafka:
+    devservices:
+      # Never needed: tests use the in-memory connector (see %test below),
+      # and local/prod use the real broker from docker-compose/KAFKA_BOOTSTRAP_SERVERS.
+      # Leaving Dev Services on would start a second, unused Kafka per test run.
+      enabled: false
+
+mp:
+  messaging:
+    outgoing:
+      booking-events:
+        connector: smallrye-kafka
+        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        # default only satisfies config validation and is never actually used.
+        topic: booking-events-default
+        value:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    mongodb:
+      database: booking-test
+    log:
+      console:
+        json:
+          enabled: false
+  mp:
+    messaging:
+      outgoing:
+        booking-events:
+          connector: smallrye-in-memory
+
+"%prod":
+  quarkus:
+    mongodb:
+      connection-string: ${MONGO_URI}
+  kafka:
+    bootstrap:
+      servers: ${KAFKA_BOOTSTRAP_SERVERS}
