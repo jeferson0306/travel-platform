@@ -29,7 +29,7 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 ## Phase 2 — Core domains
 
-- [ ] **M8 — booking-service**: reservation lifecycle, outbox pattern, first
+- [x] **M8 — booking-service**: reservation lifecycle, outbox pattern, first
       Kafka events (`booking-created`, `booking-cancelled`).
 - [ ] **M9 — flight-service & hotel-service**: inventory/search domain
       models, consuming shared identity/auth.
