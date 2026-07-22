@@ -15,6 +15,7 @@ import com.travelplatform.booking.domain.booking.TravelerId;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,6 +32,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * creation.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("S3ReceiptStorage")
 class S3ReceiptStorageTest {
 
     @Mock S3Client s3Client;

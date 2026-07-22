@@ -25,9 +25,29 @@
     <maven.compiler.release>25</maven.compiler.release>
     <spotless-maven-plugin.version>2.44.5</spotless-maven-plugin.version>
     <google-java-format.version>1.27.0</google-java-format.version>
+    <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
+    <pitest-maven-plugin.version>1.19.1</pitest-maven-plugin.version>
+    <pitest-junit5-plugin.version>1.2.2</pitest-junit5-plugin.version>
   </properties>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <!--
+          Streams each test class's result straight to the console (not just to the
+          surefire-reports files) with JUnit 5 @DisplayName sentences, so `mvn test` output reads
+          as a plain-English account of what was verified and whether it passed - see
+          docs/development/testing.md.
+        -->
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <reportFormat>plain</reportFormat>
+            <useFile>false</useFile>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <!--
         Formatting is enforced, not suggested: `apply` runs from the git
@@ -55,6 +75,99 @@
             <sortPom></sortPom>
           </pom>
         </configuration>
+      </plugin>
+      <!--
+        Coverage gate (ROADMAP M5 close-out, deliberately deferred until the test pyramid itself
+        was solid - see docs/development/testing.md). report and check are both bound to the
+        `test` phase (not `verify`) so `mvn test` alone - the command every other workflow in this
+        repo already runs - is the one that enforces the gate, with no extra step to remember.
+      -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>test</phase>
+          </execution>
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>test</phase>
+            <!--
+              0.45 at BUNDLE (whole-service) level - a real, measured floor, not a target: the
+              domain/application layers, where the business logic and bug risk actually live, run
+              85-95%+ per-package (see target/site/jacoco/index.html for the breakdown). The
+              bundle-wide number sits lower because it also counts framework-glue classes (Mongo
+              document mappers, CDI producers, RequestLoggingFilter) that are simple, low-risk, and
+              already exercised indirectly by the integration tests - writing tests against them
+              just to inflate this number would be coverage theater, not better testing. This gate
+              exists to catch a wholesale regression (a class shipped with no tests at all), not to
+              chase a percentage.
+            -->
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.45</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!--
+        Mutation testing (ROADMAP M5 close-out) - not bound to any lifecycle phase on purpose, so
+        `mvn test`/CI stay fast: PIT reruns the whole suite once per surviving mutant, which is
+        minutes, not seconds. Run on demand per service:
+          mvn -f backend/pom.xml -pl <service> -am org.pitest:pitest-maven:mutationCoverage
+        Scoped to domain/application (the layers the unit tests actually target and where a
+        mutation surviving means a real behavioral gap, not framework glue) - see
+        docs/development/testing.md.
+      -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>${pitest-maven-plugin.version}</version>
+        <configuration>
+          <targetClasses>
+            <param>com.travelplatform.*.domain.*</param>
+            <param>com.travelplatform.*.application.*</param>
+          </targetClasses>
+          <targetTests>
+            <param>com.travelplatform.*.domain.*</param>
+            <param>com.travelplatform.*.application.*</param>
+          </targetTests>
+          <outputFormats>
+            <outputFormat>HTML</outputFormat>
+          </outputFormats>
+          <timestampedReports>false</timestampedReports>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>${pitest-junit5-plugin.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

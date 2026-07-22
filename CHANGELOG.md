@@ -62,3 +62,21 @@ and this project uses milestone-based versioning as defined in
   `Booking.confirm()`/`cancel()` already rejecting a repeat call. Same
   Mongo-backed retry/DLQ pattern as M10. `ci.yml`'s matrix now covers all
   five services.
+- Test pyramid close-out (M5), applied across all five services: filled
+  gaps found by an audit of every domain exception, REST error status and
+  consumer failure path (inactive-user login, malformed/poison Kafka
+  payloads, cross-item-type events ignored, refunding an already-refunded
+  payment, `ConfirmBookingService` had no test at all). New `RetryRelay`
+  tests per service drive the scheduler directly (package-visible `relay()`
+  called synchronously) to deterministically cover backoff math and the
+  exhausted-retries dead-letter transition - the least-covered path before
+  this. Fixed a real (if rare) concurrency bug this surfaced: the
+  background `@Scheduled` trigger and a direct `relay()` call could race
+  on the same overdue task and crash on a duplicate dead-letter insert;
+  fixed by making that write an upsert. Every test now carries a JUnit 5
+  `@DisplayName`; `mvn test` streams readable pass/fail output straight to
+  the console (`reportFormat=plain`, `useFile=false`). JaCoCo coverage gate
+  (0.45 line-coverage floor, measured not arbitrary) added to the parent
+  POM, bound to `mvn test` itself. Mutation testing (PIT) is configured but
+  currently blocked by an upstream Java 25 bytecode incompatibility - see
+  docs/development/testing.md.

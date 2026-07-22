@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * booking with no payment yet).
  */
 @QuarkusTest
+@DisplayName("Payment saga consumers")
 class PaymentSagaConsumersTest {
 
     @Inject @Any InMemoryConnector connector;
@@ -47,7 +49,18 @@ class PaymentSagaConsumersTest {
                 .formatted(bookingId, UUID.randomUUID(), Instant.now());
     }
 
+    private String paymentStatus(String bookingId) {
+        var doc =
+                mongoClient
+                        .getDatabase("payment")
+                        .getCollection("payments")
+                        .find(Filters.eq("bookingId", bookingId))
+                        .first();
+        return doc == null ? null : doc.getString("status");
+    }
+
     @Test
+    @DisplayName("authorizes a payment on booking-created, then refunds it on booking-cancelled")
     void authorizesThenRefundsAPayment() {
         var bookingId = UUID.randomUUID().toString();
         InMemorySource<String> bookingCreated = connector.source("booking-created");
@@ -56,34 +69,16 @@ class PaymentSagaConsumersTest {
         bookingCreated.send(bookingCreatedPayload(bookingId, "450.00", "EUR"));
 
         await().atMost(Duration.ofSeconds(10))
-                .untilAsserted(
-                        () -> {
-                            var doc =
-                                    mongoClient
-                                            .getDatabase("payment")
-                                            .getCollection("payments")
-                                            .find(Filters.eq("bookingId", bookingId))
-                                            .first();
-                            assertThat(doc).isNotNull();
-                            assertThat(doc.getString("status")).isEqualTo("AUTHORIZED");
-                        });
+                .untilAsserted(() -> assertThat(paymentStatus(bookingId)).isEqualTo("AUTHORIZED"));
 
         bookingCancelled.send(bookingCancelledPayload(bookingId));
 
         await().atMost(Duration.ofSeconds(10))
-                .untilAsserted(
-                        () -> {
-                            var doc =
-                                    mongoClient
-                                            .getDatabase("payment")
-                                            .getCollection("payments")
-                                            .find(Filters.eq("bookingId", bookingId))
-                                            .first();
-                            assertThat(doc.getString("status")).isEqualTo("REFUNDED");
-                        });
+                .untilAsserted(() -> assertThat(paymentStatus(bookingId)).isEqualTo("REFUNDED"));
     }
 
     @Test
+    @DisplayName("a duplicate booking-created delivery only creates one payment")
     void duplicateBookingCreatedIsAppliedOnlyOnce() {
         var bookingId = UUID.randomUUID().toString();
         InMemorySource<String> bookingCreated = connector.source("booking-created");
@@ -117,6 +112,8 @@ class PaymentSagaConsumersTest {
     }
 
     @Test
+    @DisplayName(
+            "refunding a booking with no payment yet schedules a retry instead of failing silently")
     void refundingAnUnknownBookingSchedulesARetry() {
         var bookingId = UUID.randomUUID().toString();
         InMemorySource<String> bookingCancelled = connector.source("booking-cancelled");
@@ -135,5 +132,20 @@ class PaymentSagaConsumersTest {
                             assertThat(doc).isNotNull();
                             assertThat(doc.getString("action")).isEqualTo("booking-cancelled");
                         });
+    }
+
+    @Test
+    @DisplayName("drops a malformed booking-created payload instead of scheduling a retry for it")
+    void dropsAMalformedBookingCreatedPayload() {
+        InMemorySource<String> source = connector.source("booking-created");
+        var retryTasks = mongoClient.getDatabase("payment").getCollection("retry_tasks");
+        var countBefore = retryTasks.countDocuments();
+
+        source.send("{ this is not valid json");
+
+        await().pollDelay(Duration.ofSeconds(1))
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(
+                        () -> assertThat(retryTasks.countDocuments()).isEqualTo(countBefore));
     }
 }

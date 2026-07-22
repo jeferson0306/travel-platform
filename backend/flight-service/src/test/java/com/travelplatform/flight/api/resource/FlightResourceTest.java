@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * RS256 verification config in application.yml (publicKey.pem).
  */
 @QuarkusTest
+@DisplayName("FlightResource")
 class FlightResourceTest {
 
     private String tokenWithRole(String role) {

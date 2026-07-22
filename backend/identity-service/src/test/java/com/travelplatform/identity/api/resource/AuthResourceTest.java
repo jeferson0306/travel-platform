@@ -8,6 +8,7 @@ import com.travelplatform.identity.api.dto.LoginRequest;
 import com.travelplatform.identity.api.dto.RegisterUserRequest;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -15,9 +16,11 @@ import org.junit.jupiter.api.Test;
  * Dev Services (Testcontainers under the hood) - no mocks.
  */
 @QuarkusTest
+@DisplayName("AuthResource")
 class AuthResourceTest {
 
     @Test
+    @DisplayName("registers a new traveler and logs them in with the same credentials")
     void registersAndLogsInSuccessfully() {
         var email = "traveler-" + UUID.randomUUID() + "@example.com";
 
@@ -40,6 +43,7 @@ class AuthResourceTest {
     }
 
     @Test
+    @DisplayName("rejects registering the same email twice")
     void rejectsDuplicateRegistration() {
         var email = "traveler-" + UUID.randomUUID() + "@example.com";
         var request = new RegisterUserRequest(email, "s3cret-pass");
@@ -56,6 +60,7 @@ class AuthResourceTest {
     }
 
     @Test
+    @DisplayName("rejects login with the wrong password")
     void rejectsLoginWithWrongPassword() {
         var email = "traveler-" + UUID.randomUUID() + "@example.com";
         given().contentType("application/json")
@@ -72,6 +77,21 @@ class AuthResourceTest {
     }
 
     @Test
+    @DisplayName("rejects login for an email that was never registered")
+    void rejectsLoginWithUnknownEmail() {
+        var email = "ghost-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .body(new LoginRequest(email, "whatever-pass"))
+                .when()
+                .post("/api/v1/auth/login")
+                .then()
+                .statusCode(401)
+                .body("error", equalTo("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    @DisplayName("rejects registration with a malformed email and a too-short password")
     void rejectsRegistrationWithInvalidPayload() {
         given().contentType("application/json")
                 .body(new RegisterUserRequest("not-an-email", "short"))
@@ -84,6 +104,48 @@ class AuthResourceTest {
     }
 
     @Test
+    @DisplayName("rejects a password one character under the 8-character minimum")
+    void rejectsPasswordJustBelowMinimumLength() {
+        var email = "traveler-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .body(new RegisterUserRequest(email, "1234567"))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("accepts a password at exactly the 8-character minimum")
+    void acceptsPasswordAtMinimumLength() {
+        var email = "traveler-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .body(new RegisterUserRequest(email, "12345678"))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
+    @DisplayName("rejects a password one character over the 128-character maximum")
+    void rejectsPasswordJustAboveMaximumLength() {
+        var email = "traveler-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .body(new RegisterUserRequest(email, "a".repeat(129)))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("echoes back a caller-supplied correlation id for tracing")
     void echoesBackACorrelationIdForTracing() {
         var email = "traveler-" + UUID.randomUUID() + "@example.com";
 
@@ -98,6 +160,7 @@ class AuthResourceTest {
     }
 
     @Test
+    @DisplayName("generates a correlation id when the caller does not supply one")
     void generatesACorrelationIdWhenCallerDoesNotSupplyOne() {
         var email = "traveler-" + UUID.randomUUID() + "@example.com";
 
