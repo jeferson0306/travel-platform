@@ -12,11 +12,15 @@
     &lt;parent&gt; and its own dependencies. Individual services are added as
     &lt;modules&gt; here as they are built - see ../ROADMAP.md.</description>
 
+  <modules>
+    <module>identity-service</module>
+  </modules>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>25</maven.compiler.release>
-    <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
-    <google-java-format.version>1.23.0</google-java-format.version>
+    <spotless-maven-plugin.version>2.44.5</spotless-maven-plugin.version>
+    <google-java-format.version>1.27.0</google-java-format.version>
   </properties>
 
   <build>
