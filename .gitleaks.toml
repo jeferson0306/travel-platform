@@ -1,0 +1,23 @@
+title = "travel-platform gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known-safe local development placeholders"
+regexes = [
+  '''test/test''',
+  '''localstack''',
+  '''changeit''',
+]
+paths = [
+  '''.*\.env\.example$''',
+  '''.*\.tfvars\.example$''',
+  '''docs/.*''',
+]
+
+[[rules]]
+id = "generic-high-entropy-secret"
+description = "Generic high entropy secret (fallback for anything the default rule set misses)"
+regex = '''(?i)(secret|token|api[_-]?key|password)['\"]?\s*[:=]\s*['\"][0-9a-zA-Z\-_=]{16,}['\"]'''
+tags = ["secret", "generic"]

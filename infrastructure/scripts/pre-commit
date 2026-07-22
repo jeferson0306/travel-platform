@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Blocks a commit if gitleaks finds a likely secret in staged changes.
+# Installed into .git/hooks/pre-commit by infrastructure/scripts/install-git-hooks.sh
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "-------------------------------------------------------------"
+  echo "WARNING: gitleaks is not installed - secret scan was SKIPPED."
+  echo "Install it before pushing to a public remote:"
+  echo "  brew install gitleaks"
+  echo "-------------------------------------------------------------"
+  exit 0
+fi
+
+gitleaks protect --staged --config .gitleaks.toml --verbose

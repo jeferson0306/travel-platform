@@ -1,0 +1,7 @@
+# Default owner for everything in the repository.
+# Every pull request needs an approval from an owner of the paths it touches.
+* @jeferson0306
+
+/infrastructure/ @jeferson0306
+/docs/adr/ @jeferson0306
+/.github/ @jeferson0306
