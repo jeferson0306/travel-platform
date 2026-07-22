@@ -110,6 +110,29 @@ services:
     networks:
       - travel-platform
 
+  opensearch:
+    image: opensearchproject/opensearch:3.7.0
+    container_name: travel-platform-opensearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # Security plugin disabled for local dev, matching the test Testcontainers setup
+      # (org.opensearch:opensearch-testcontainers default) - see
+      # docs/adr/0012-search-service-opensearch.md. Never disable it in a real environment.
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - travel-platform
+
   localstack:
     image: localstack/localstack:3.7
     container_name: travel-platform-localstack
@@ -134,3 +157,4 @@ volumes:
   mongodb_data:
   kafka_data:
   localstack_data:
+  opensearch_data:

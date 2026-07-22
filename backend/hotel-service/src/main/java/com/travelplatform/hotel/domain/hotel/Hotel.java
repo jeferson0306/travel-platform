@@ -1,8 +1,13 @@
 package com.travelplatform.hotel.domain.hotel;
 
+import com.travelplatform.hotel.domain.shared.DomainEvent;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Aggregate root for the hotel bounded context. No lifecycle yet - inventory is immutable once
- * created (no update/delete endpoint); revisit once a real need appears.
+ * Aggregate root for the hotel bounded context. No lifecycle yet beyond creation and room
+ * reservation (no update/delete endpoint); revisit once a real need appears.
  */
 public final class Hotel {
 
@@ -11,6 +16,7 @@ public final class Hotel {
     private final City city;
     private final Money pricePerNight;
     private final int availableRooms;
+    private final List<DomainEvent> domainEvents = new ArrayList<>();
 
     private Hotel(HotelId id, HotelName name, City city, Money pricePerNight, int availableRooms) {
         this.id = id;
@@ -24,7 +30,16 @@ public final class Hotel {
         if (availableRooms < 0) {
             throw new IllegalArgumentException("availableRooms must not be negative");
         }
-        return new Hotel(HotelId.newId(), name, city, pricePerNight, availableRooms);
+        var hotel = new Hotel(HotelId.newId(), name, city, pricePerNight, availableRooms);
+        hotel.domainEvents.add(
+                new HotelCreated(
+                        hotel.id,
+                        hotel.name,
+                        hotel.city,
+                        hotel.pricePerNight,
+                        hotel.availableRooms,
+                        Instant.now()));
+        return hotel;
     }
 
     public static Hotel reconstitute(
@@ -50,5 +65,11 @@ public final class Hotel {
 
     public int availableRooms() {
         return availableRooms;
+    }
+
+    public List<DomainEvent> pullDomainEvents() {
+        var events = List.copyOf(domainEvents);
+        domainEvents.clear();
+        return events;
     }
 }

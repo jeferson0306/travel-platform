@@ -22,17 +22,17 @@ _why_ it got that way and what was rejected.
 
 ## Service map
 
-| Service                | Owns                                       | Talks to                                                        |
-| ---------------------- | ------------------------------------------ | --------------------------------------------------------------- |
-| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                            |
-| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), Kafka (`booking-*` events) |
-| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)              |
-| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                       |
-| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                       |
-| `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                     |
-| `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                            |
-| `search-service`       | Autocomplete, fuzzy & geo search           | OpenSearch, consumes flight/hotel events                        |
-| `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                      |
+| Service                | Owns                                       | Talks to                                                                                  |
+| ---------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                                                      |
+| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), Kafka (`booking-*` events)                           |
+| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)                                        |
+| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                                                 |
+| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                                                 |
+| `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                                               |
+| `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                                                      |
+| `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), Kafka (consumes `flight-created`/`hotel-created`) |
+| `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                                                |
 
 Full container-level detail: [docs/c4](docs/c4).
 
@@ -105,9 +105,9 @@ shared logging adapter every service uses (introduced in Phase 1).
 This document reflects the target architecture. As of the current milestone
 (see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
 (Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9),
-`payment-service` (Phase 3, M11) and `notification-service` (Phase 3, M12)
-are implemented; `currency-service`, `search-service` and `gateway` are
-still planned.
+`payment-service` (Phase 3, M11), `notification-service` (Phase 3, M12) and
+`search-service` (Phase 3, M13) are implemented; `currency-service` and
+`gateway` are still planned.
 `flight-service` and `hotel-service` consume `booking-created` (M10) - the
 platform's first real cross-service event-driven integration, not just
 publish-and-forget. `payment-service` and `booking-service` extend that into
@@ -116,4 +116,10 @@ authorization, whose outcome confirms or compensates (cancels) the booking.
 `notification-service` (M12, ADR 0011) is the saga's terminal step: it
 consumes `booking-confirmed` and sends a confirmation email - the platform's
 first consumer with no domain events/outbox of its own, since nothing
-downstream reacts to "a notification was sent."
+downstream reacts to "a notification was sent." `search-service` (M13, ADR 0012) is the platform's first service with no MongoDB at all - OpenSearch is
+both its query engine and its only store, since it owns no source data of
+its own (every document is a rebuildable projection of flight-service's/
+hotel-service's own data). It is also the first fully public service (no
+authentication anywhere) and the first where a duplicate Kafka delivery
+needs no idempotency claim collection, since indexing by id is a natural
+upsert.

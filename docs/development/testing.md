@@ -78,6 +78,26 @@ be coverage theater, not better testing - this gate exists to catch a
 wholesale regression (a class shipped with no tests at all), not to chase a
 percentage.
 
+`search-service` overrides the floor down to 0.30 in its own `pom.xml`
+(measured at 0.34) - a disproportionate share of its code is OpenSearch
+client-wiring glue (index mapping bootstrap, CDI producers), already
+exercised indirectly by its integration tests, not meaningfully
+unit-testable in isolation. Same "floor, not target" philosophy, just a
+different measured number - see docs/adr/0012-search-service-opensearch.md.
+
+## Testing against OpenSearch - no Dev Services
+
+Every other service's integration tests lean on Quarkus Dev Services
+(MongoDB, Kafka) to provision infrastructure automatically. OpenSearch has
+no Dev Services integration in this Quarkus version, so `search-service`
+starts a real OpenSearch node itself via the official
+`org.opensearch:opensearch-testcontainers` module, wired in as a
+`QuarkusTestResourceLifecycleManager` (`OpenSearchTestResource`) shared
+across its `@QuarkusTest` classes. Everything else about its tests - real
+infrastructure over mocks for consumers/resources, `RetryRelay.relay()`
+driven directly, `@DisplayName` everywhere - follows the same conventions
+as every other service.
+
 ## Mutation testing (PIT) - currently blocked upstream
 
 `pitest-maven` is configured in the parent POM (`domain`/`application`

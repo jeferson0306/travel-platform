@@ -17,7 +17,7 @@ C4Container
         Container(hotel, "hotel-service", "Quarkus", "Hotel inventory & pricing")
         Container(currency, "currency-service", "Quarkus", "FX rates & conversion")
         Container(notification, "notification-service", "Quarkus", "Email/SMS/push delivery")
-        Container(search, "search-service", "Quarkus", "Autocomplete, fuzzy & geo search")
+        Container(search, "search-service", "Quarkus", "Autocomplete & route/city search - OpenSearch is its only store")
 
         ContainerDb(mongo, "MongoDB", "Document store", "Per-service private collections")
         ContainerDb(redis, "Redis", "Cache / sessions / rate limiting")
@@ -42,7 +42,7 @@ C4Container
     Rel(booking, kafka, "Publishes booking-*", "Kafka")
     Rel(payment, kafka, "Publishes payment-*", "Kafka")
     Rel(notification, kafka, "Consumes booking-confirmed", "Kafka")
-    Rel(search, kafka, "Consumes flight/hotel updates", "Kafka")
+    Rel(search, kafka, "Consumes flight-created/hotel-created", "Kafka")
 
     Rel(identity, mongo, "Reads/writes", "MongoDB driver")
     Rel(booking, mongo, "Reads/writes", "MongoDB driver")

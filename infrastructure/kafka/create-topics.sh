@@ -49,5 +49,13 @@ create_topic "payment-failed.booking-payment-outcome.dlq"
 create_topic "booking-confirmed"
 create_topic "booking-confirmed.notification-processor.dlq"
 
+# flight-service/hotel-service publish flight-created/hotel-created (own outbox, same generic relay
+# pattern as above - ROADMAP M13, docs/adr/0012-search-service-opensearch.md). search-service
+# consumes both (own consumer group "search-indexer").
+create_topic "flight-created"
+create_topic "hotel-created"
+create_topic "flight-created.search-indexer.dlq"
+create_topic "hotel-created.search-indexer.dlq"
+
 echo "Topics ready:"
 "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" --list
