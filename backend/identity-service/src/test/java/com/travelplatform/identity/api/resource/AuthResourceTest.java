@@ -82,4 +82,31 @@ class AuthResourceTest {
                 .body("error", equalTo("VALIDATION_ERROR"))
                 .body("details", notNullValue());
     }
+
+    @Test
+    void echoesBackACorrelationIdForTracing() {
+        var email = "traveler-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .header("X-Correlation-Id", "test-correlation-id")
+                .body(new RegisterUserRequest(email, "s3cret-pass"))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(201)
+                .header("X-Correlation-Id", equalTo("test-correlation-id"));
+    }
+
+    @Test
+    void generatesACorrelationIdWhenCallerDoesNotSupplyOne() {
+        var email = "traveler-" + UUID.randomUUID() + "@example.com";
+
+        given().contentType("application/json")
+                .body(new RegisterUserRequest(email, "s3cret-pass"))
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(201)
+                .header("X-Correlation-Id", notNullValue());
+    }
 }

@@ -9,6 +9,17 @@ quarkus:
     path: /openapi
   smallrye-health:
     root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # No collector running locally by default - spans are still created (so
+    # traceId/spanId land in the structured logs below) but nothing is
+    # exported over the network. Point this at Tempo/Jaeger once
+    # infrastructure/monitoring wires one up (ROADMAP M16).
+    traces:
+      exporter: none
 
 identity:
   jwt:
@@ -18,10 +29,21 @@ identity:
     # real environment. See .env.example and SECURITY.md.
     secret: ${JWT_SECRET:local-dev-only-insecure-default-secret-do-not-use-in-prod}
 
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
 "%test":
   quarkus:
     mongodb:
       database: identity-test
+    log:
+      console:
+        json:
+          enabled: false
 
 "%prod":
   quarkus:
