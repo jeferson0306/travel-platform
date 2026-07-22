@@ -1,5 +1,6 @@
 package com.travelplatform.booking.api.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,9 +9,10 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
 /**
- * amount/currency are trusted client input for now, same as travelerId (see BookingResource) -
- * booking-service does not yet look up the authoritative price from flight-service/hotel-service
- * synchronously. Revisit once the Gateway (ROADMAP M14) or a pricing lookup lands.
+ * travelerId/amount/currency/travelerEmail are trusted client input for now (see BookingResource) -
+ * booking-service does not yet look up the authoritative price from flight-service/hotel-service or
+ * the traveler's email from identity-service synchronously. Revisit once the Gateway (ROADMAP M14)
+ * or a pricing/identity lookup lands.
  */
 public record CreateBookingRequest(
         @NotBlank
@@ -19,6 +21,7 @@ public record CreateBookingRequest(
                                 "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
                         message = "must be a well-formed UUID")
                 String travelerId,
+        @NotBlank @Email String travelerEmail,
         @NotBlank @Pattern(regexp = "^(FLIGHT|HOTEL)$", message = "must be FLIGHT or HOTEL")
                 String itemType,
         @NotBlank

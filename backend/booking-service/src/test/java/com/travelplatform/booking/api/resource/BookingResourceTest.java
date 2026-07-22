@@ -47,6 +47,7 @@ class BookingResourceTest {
                         .body(
                                 new CreateBookingRequest(
                                         travelerId,
+                                        "traveler@example.com",
                                         "FLIGHT",
                                         UUID.randomUUID().toString(),
                                         2,
@@ -86,6 +87,7 @@ class BookingResourceTest {
                         .body(
                                 new CreateBookingRequest(
                                         travelerId,
+                                        "traveler@example.com",
                                         "HOTEL",
                                         UUID.randomUUID().toString(),
                                         1,
@@ -137,6 +139,7 @@ class BookingResourceTest {
                 .body(
                         new CreateBookingRequest(
                                 "not-a-uuid",
+                                "traveler@example.com",
                                 "HOTEL",
                                 UUID.randomUUID().toString(),
                                 1,

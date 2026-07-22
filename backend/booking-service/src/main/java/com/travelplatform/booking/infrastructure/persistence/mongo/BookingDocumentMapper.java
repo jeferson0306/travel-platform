@@ -4,6 +4,7 @@ import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
 import com.travelplatform.booking.domain.booking.BookingReference;
 import com.travelplatform.booking.domain.booking.BookingStatus;
+import com.travelplatform.booking.domain.booking.Email;
 import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
@@ -19,6 +20,7 @@ public final class BookingDocumentMapper {
     public static Document toDocument(Booking booking) {
         return new Document("_id", booking.id().value().toString())
                 .append("travelerId", booking.travelerId().value().toString())
+                .append("travelerEmail", booking.travelerEmail().value())
                 .append("itemType", booking.reference().itemType().name())
                 .append("itemId", booking.reference().itemId())
                 .append("quantity", booking.reference().quantity())
@@ -32,6 +34,7 @@ public final class BookingDocumentMapper {
         return Booking.reconstitute(
                 BookingId.of(document.getString("_id")),
                 TravelerId.of(document.getString("travelerId")),
+                new Email(document.getString("travelerEmail")),
                 new BookingReference(
                         ItemType.valueOf(document.getString("itemType")),
                         document.getString("itemId"),

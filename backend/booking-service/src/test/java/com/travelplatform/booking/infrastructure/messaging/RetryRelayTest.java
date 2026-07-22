@@ -52,6 +52,7 @@ class RetryRelayTest {
                 .body(
                         new CreateBookingRequest(
                                 UUID.randomUUID().toString(),
+                                "traveler@example.com",
                                 "FLIGHT",
                                 UUID.randomUUID().toString(),
                                 1,

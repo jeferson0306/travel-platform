@@ -7,6 +7,7 @@ import java.time.Instant;
 public record BookingReceipt(
         String bookingId,
         String travelerId,
+        String travelerEmail,
         String itemType,
         String itemId,
         int quantity,
@@ -18,6 +19,7 @@ public record BookingReceipt(
         return new BookingReceipt(
                 booking.id().value().toString(),
                 booking.travelerId().value().toString(),
+                booking.travelerEmail().value(),
                 booking.reference().itemType().name(),
                 booking.reference().itemId(),
                 booking.reference().quantity(),

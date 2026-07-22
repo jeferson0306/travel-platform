@@ -13,16 +13,18 @@ import org.junit.jupiter.api.Test;
 class BookingTest {
 
     private static final Money AMOUNT = new Money(new BigDecimal("450.00"), "EUR");
+    private static final Email TRAVELER_EMAIL = new Email("traveler@example.com");
 
     @Test
     void createRaisesBookingCreatedAndStartsPending() {
         var travelerId = new TravelerId(UUID.randomUUID());
         var reference = new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2);
 
-        var booking = Booking.create(travelerId, reference, AMOUNT);
+        var booking = Booking.create(travelerId, TRAVELER_EMAIL, reference, AMOUNT);
 
         assertThat(booking.status()).isEqualTo(BookingStatus.PENDING);
         assertThat(booking.travelerId()).isEqualTo(travelerId);
+        assertThat(booking.travelerEmail()).isEqualTo(TRAVELER_EMAIL);
         assertThat(booking.amount()).isEqualTo(AMOUNT);
         assertThat(booking.pullDomainEvents())
                 .hasSize(1)
@@ -42,6 +44,7 @@ class BookingTest {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
+                        TRAVELER_EMAIL,
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         AMOUNT);
         booking.pullDomainEvents();
@@ -62,6 +65,7 @@ class BookingTest {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
+                        TRAVELER_EMAIL,
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         AMOUNT);
         booking.cancel();
@@ -70,16 +74,29 @@ class BookingTest {
     }
 
     @Test
-    void confirmChangesStatusToConfirmed() {
+    void confirmChangesStatusToConfirmedAndRaisesBookingConfirmed() {
+        var travelerId = new TravelerId(UUID.randomUUID());
         var booking =
                 Booking.create(
-                        new TravelerId(UUID.randomUUID()),
+                        travelerId,
+                        TRAVELER_EMAIL,
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         AMOUNT);
+        booking.pullDomainEvents();
 
         booking.confirm();
 
         assertThat(booking.status()).isEqualTo(BookingStatus.CONFIRMED);
+        assertThat(booking.pullDomainEvents())
+                .hasSize(1)
+                .first()
+                .isInstanceOfSatisfying(
+                        BookingConfirmed.class,
+                        event -> {
+                            assertThat(event.bookingId()).isEqualTo(booking.id());
+                            assertThat(event.travelerId()).isEqualTo(travelerId);
+                            assertThat(event.travelerEmail()).isEqualTo(TRAVELER_EMAIL);
+                        });
     }
 
     @Test
@@ -87,6 +104,7 @@ class BookingTest {
         var booking =
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
+                        TRAVELER_EMAIL,
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         AMOUNT);
         booking.confirm();
@@ -100,6 +118,7 @@ class BookingTest {
                 Booking.reconstitute(
                         BookingId.newId(),
                         new TravelerId(UUID.randomUUID()),
+                        TRAVELER_EMAIL,
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         AMOUNT,
                         BookingStatus.PENDING,

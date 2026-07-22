@@ -52,8 +52,12 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       booking-created triggers payment authorization (simulated gateway),
       whose outcome confirms or compensates (cancels) the booking;
       booking-cancelled triggers a refund. Idempotent throughout (ADR 0010).
-- [ ] **M12 — notification-service**: email templates via SES (LocalStack),
-      Kafka-driven delivery.
+- [x] **M12 — notification-service**: consumes `booking-confirmed` (own
+      consumer group), sends a booking confirmation email (simulated
+      gateway, drop-in seam for SES/LocalStack later) and stores a
+      `Notification` record. Terminal consumer - no domain events/outbox of
+      its own. Idempotent, with the same Mongo-backed retry queue/DLQ shape
+      as M10/M11 (ADR 0011).
 - [ ] **M13 — search-service**: OpenSearch-backed autocomplete and geo
       search.
 - [ ] **M14 — API Gateway**: routing, JWT validation, rate limiting, CORS.
