@@ -160,3 +160,9 @@ and continued with M19 (ADR 0018): `assistant-service`, a ninth backend
 service answering engineering questions grounded in that same
 docs/context corpus, backed by a local Ollama runtime rather than a paid
 hosted LLM API - consistent with this platform's local-first posture.
+Phase 6 (production polish) closes with M20 (ADR 0019): a minimal React
+frontend covering the essential booking flow, verified end-to-end against
+the real stack, and a public backend deployment scoped to the six
+services the choreography saga actually needs - `search-service` and
+`assistant-service` (and the OpenSearch/Ollama dependencies behind them)
+stay local-only, since neither fits a genuinely free hosting tier.

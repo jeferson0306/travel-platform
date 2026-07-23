@@ -421,7 +421,10 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:11434 || exit 1"]
+      # The ollama/ollama image ships neither wget nor curl - only the ollama binary itself
+      # (confirmed on a real container: `command -v wget curl` both fail). `ollama list` hits the
+      # local server over its own client, so it's a real - and available - health signal.
+      test: ["CMD", "ollama", "list"]
       interval: 10s
       timeout: 5s
       retries: 10
