@@ -87,10 +87,19 @@ writes a JSON booking confirmation to - ADR
 
 ## Resilience
 
-Every outbound call (service-to-service REST, database, cache, external API)
-is wrapped with Quarkus Fault Tolerance (timeout, retry, circuit breaker,
-bulkhead) as it is implemented — documented per-service as it lands, with the
-patterns catalogued in [docs/runbooks](docs/runbooks).
+Applied where a genuine synchronous external dependency exists, not
+uniformly across every service - most services have none (M15, ADR 0014).
+`gateway` wraps every proxied call to a backend in a SmallRye Fault
+Tolerance `Guard` (timeout, circuit breaker, bulkhead; retry only for
+idempotent GET/HEAD), one independent `Guard` per backend so one struggling
+service can't trip the breaker for the rest. `search-service` wraps its
+OpenSearch read queries in `@Timeout`/`@Retry`. Every other service's
+resilience story for its Kafka consumers is the Mongo/OpenSearch-backed
+retry queue + DLQ pattern from M10 (ADR 0004's addendum), not Fault
+Tolerance annotations - the two mechanisms would conflict if stacked.
+Operational playbooks for these failure modes belong in
+[docs/runbooks](docs/runbooks), written against real scenarios once chaos
+testing (M16) exercises them - not speculatively.
 
 ## Observability contract
 
@@ -126,4 +135,7 @@ upsert. `gateway` (M14, ADR 0013) fronts every service above it: routing by
 path prefix, a JWT fast-fail check (signature/expiry only - authorization
 stays exclusively in each backend, defense in depth), and Redis-backed rate
 limiting. It is the only container reachable from outside the platform
-boundary besides the SPA build artifacts.
+boundary besides the SPA build artifacts. Phase 4 (resilience & scale)
+opens with M15 (ADR 0014): fault tolerance applied only to `gateway`'s
+and `search-service`'s genuine synchronous dependencies, not invented
+elsewhere.

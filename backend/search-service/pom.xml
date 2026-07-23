@@ -82,6 +82,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+    </dependency>
     <!--
       OpenSearch has no first-party Quarkus extension compatible with this platform's Quarkus
       version (same situation as AWS S3 - ADR 0008): the official Java client is used directly.

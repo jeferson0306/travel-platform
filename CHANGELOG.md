@@ -130,3 +130,21 @@ and this project uses milestone-based versioning as defined in
   forwarding correctness, status passthrough, rate limiting and JWT
   rejection over real HTTP calls into a running instance. `ci.yml`'s matrix
   now covers all eight services.
+- Fault tolerance (M15, ADR 0014), scoped to the two places a genuine
+  synchronous external dependency actually exists - an audit found no
+  synchronous inter-service REST calls anywhere else in the platform, since
+  it ended up fully event-driven (ADR 0004). `gateway`'s
+  `UpstreamProxyClient` now builds one SmallRye Fault Tolerance `Guard`
+  (the programmatic API, not annotations - a single annotated method would
+  share one circuit breaker across all seven backends) per backend segment,
+  giving each an independent timeout/circuit-breaker/bulkhead; only the
+  idempotent (GET/HEAD) path retries, since retrying a POST/PUT/PATCH/DELETE
+  could duplicate a side effect on the backend. `ProxyRoutes` maps
+  `CircuitBreakerOpenException`/`TimeoutException` to 503/504 instead of a
+  blanket 502. `search-service`'s three OpenSearch read methods gained
+  `@Timeout`/`@Retry` - not `index()`, which already has its own durable
+  retry/DLQ mechanism (ADR 0012) that stacking SmallRye retry on top of
+  would be redundant with. New `StubUpstreamResource` failure-injection
+  (configurable delay, to trigger a real timeout) and a dedicated
+  closed-port test resource (to trip the circuit breaker deterministically)
+  cover the new gateway behavior end to end.

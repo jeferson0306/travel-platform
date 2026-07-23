@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.Refresh;
@@ -18,6 +20,12 @@ import org.opensearch.client.opensearch.core.SearchResponse;
  * with the same id just overwrites the previous one, which is why this service needs no
  * processed-events claim collection unlike every Mongo-backed consumer elsewhere in the platform
  * (see docs/adr/0012-search-service-opensearch.md).
+ *
+ * <p>{@code @Timeout}/{@code @Retry} apply only to the read methods below, not {@link #index} -
+ * that write path already has its own durable, Mongo-independent retry/DLQ mechanism ({@code
+ * RetryRelay}); stacking SmallRye's in-process retry on top would be redundant at best and
+ * conflicting at worst. Reads are pure and side-effect-free, so retrying them is always safe - see
+ * docs/adr/0014-fault-tolerance.md.
  */
 @ApplicationScoped
 public class OpenSearchFlightSearchRepository implements FlightSearchRepository {
@@ -56,6 +64,8 @@ public class OpenSearchFlightSearchRepository implements FlightSearchRepository 
     }
 
     @Override
+    @Timeout(3000)
+    @Retry(maxRetries = 2, delay = 100)
     public List<SearchableFlight> searchByRoute(String origin, String destination) {
         var originTerm =
                 Query.of(
@@ -82,6 +92,8 @@ public class OpenSearchFlightSearchRepository implements FlightSearchRepository 
     }
 
     @Override
+    @Timeout(3000)
+    @Retry(maxRetries = 2, delay = 100)
     public List<SearchableFlight> autocomplete(String prefix) {
         var normalized = prefix.toUpperCase(Locale.ROOT);
         var originPrefix = Query.of(q -> q.prefix(p -> p.field("origin").value(normalized)));

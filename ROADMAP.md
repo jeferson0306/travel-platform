@@ -72,8 +72,13 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 ## Phase 4 — Resilience & scale
 
-- [ ] **M15 — Fault tolerance**: circuit breakers, retries, timeouts,
-      bulkheads across all services.
+- [x] **M15 — Fault tolerance**: applied only where a real synchronous
+      dependency exists - `gateway`→backend (per-backend circuit
+      breaker/timeout/bulkhead via the programmatic SmallRye `Guard` API,
+      retry only for idempotent GET/HEAD) and `search-service`→OpenSearch
+      read queries. Every other service already had its fault-tolerance
+      story since M10 (Mongo-backed retry/DLQ on Kafka consumers) and
+      needed nothing new (ADR 0014).
 - [ ] **M16 — Load & chaos testing**: k6/Gatling load profiles, Toxiproxy
       fault injection, documented failure playbooks.
 - [ ] **M17 — Kubernetes manifests**: deployments, HPA, probes, resource
