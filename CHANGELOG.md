@@ -112,3 +112,21 @@ and this project uses milestone-based versioning as defined in
   Testcontainers (`opensearch-testcontainers`), since this Quarkus version
   has no Dev Services support for it. `docker-compose.yml` gains an
   `opensearch` service; `ci.yml`'s matrix now covers all seven services.
+- `gateway`: eighth microservice, closing Phase 3 (M14, ADR 0013). Single
+  entry point fronting every backend service: a generic reverse-proxy route
+  (`quarkus-reactive-routes` + Vert.x `WebClient`) forwards
+  method/headers/query/body verbatim to whichever service owns a path's
+  first segment after `/api/v1/`, no path rewriting. Redis-backed
+  fixed-window rate limiting (429 once exceeded) and a JWT fast-fail check
+  (401 for a present-but-invalid token; a missing token passes through
+  untouched) run before every proxy - both cheap protections against wasted
+  upstream work, not a duplicate authorization layer: every backend still
+  independently enforces its own `@RolesAllowed` rules exactly as before.
+  CORS is native Quarkus config, no custom code. No MongoDB, no Kafka - the
+  gateway is stateless except for Redis rate-limit counters. Unlike every
+  other service, has no hexagonal domain/application/infrastructure split
+  (nothing here is a business domain to protect from framework leakage).
+  Tests stand in for real backends with a stub HTTP server, exercising
+  forwarding correctness, status passthrough, rate limiting and JWT
+  rejection over real HTTP calls into a running instance. `ci.yml`'s matrix
+  now covers all eight services.

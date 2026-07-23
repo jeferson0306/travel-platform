@@ -22,6 +22,7 @@ paths = [
   # supplies its own key via smallrye.jwt.sign.key.location.
   '''backend/identity-service/src/main/resources/privateKey\.pem$''',
   '''backend/[a-z-]+-service/src/test/resources/privateKey\.pem$''',
+  '''backend/gateway/src/test/resources/privateKey\.pem$''',
 ]
 
 [[rules]]

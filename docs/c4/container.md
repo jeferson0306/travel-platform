@@ -8,7 +8,7 @@ C4Container
 
     System_Boundary(platform, "Travel Platform") {
         Container(spa, "Web App", "React, TypeScript, Vite", "Search, booking and account UI")
-        Container(gateway, "API Gateway", "Kong/Traefik", "Routing, JWT validation, rate limiting, CORS")
+        Container(gateway, "gateway", "Quarkus", "Routing, JWT fast-fail, Redis rate limiting, CORS")
 
         Container(identity, "identity-service", "Quarkus", "Authentication, authorization, sessions")
         Container(booking, "booking-service", "Quarkus", "Reservation lifecycle, outbox")
@@ -32,6 +32,8 @@ C4Container
     Rel(gateway, booking, "Routes", "HTTPS")
     Rel(gateway, flight, "Routes", "HTTPS")
     Rel(gateway, hotel, "Routes", "HTTPS")
+    Rel(gateway, payment, "Routes", "HTTPS")
+    Rel(gateway, notification, "Routes", "HTTPS")
     Rel(gateway, search, "Routes", "HTTPS")
 
     Rel(booking, flight, "Checks availability", "HTTPS")

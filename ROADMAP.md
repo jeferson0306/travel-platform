@@ -64,7 +64,11 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       indexes into OpenSearch - its only datastore, no MongoDB (ADR 0012).
       Public route/city search plus prefix autocomplete. True geo search
       descoped - `City` has no coordinates yet.
-- [ ] **M14 — API Gateway**: routing, JWT validation, rate limiting, CORS.
+- [x] **M14 — API Gateway**: single entry point fronting all seven backend
+      services, path-prefix routing (no rewriting), JWT fast-fail
+      (signature/expiry only - authorization stays exclusively per-backend,
+      ADR 0013), Redis-backed fixed-window rate limiting, native Quarkus
+      CORS. Closes Phase 3.
 
 ## Phase 4 — Resilience & scale
 

@@ -60,6 +60,7 @@ jobs:
             payment-service,
             notification-service,
             search-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:
@@ -88,6 +89,7 @@ jobs:
             payment-service,
             notification-service,
             search-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:
@@ -111,6 +113,7 @@ jobs:
             payment-service,
             notification-service,
             search-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:

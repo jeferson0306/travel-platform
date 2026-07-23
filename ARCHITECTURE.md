@@ -32,7 +32,7 @@ _why_ it got that way and what was rejected.
 | `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                                               |
 | `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                                                      |
 | `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), Kafka (consumes `flight-created`/`hotel-created`) |
-| `gateway`              | Routing, auth enforcement, rate limiting   | fronts every service above                                                                |
+| `gateway`              | Routing, JWT fast-fail, rate limiting      | fronts every service above (ADR 0013), Redis (rate limit counters)                        |
 
 Full container-level detail: [docs/c4](docs/c4).
 
@@ -105,9 +105,9 @@ shared logging adapter every service uses (introduced in Phase 1).
 This document reflects the target architecture. As of the current milestone
 (see [ROADMAP.md](ROADMAP.md)), `identity-service` (Phase 1), `booking-service`
 (Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9),
-`payment-service` (Phase 3, M11), `notification-service` (Phase 3, M12) and
-`search-service` (Phase 3, M13) are implemented; `currency-service` and
-`gateway` are still planned.
+`payment-service` (Phase 3, M11), `notification-service` (Phase 3, M12),
+`search-service` (Phase 3, M13) and `gateway` (Phase 3, M14, closing the
+phase) are implemented; `currency-service` is still planned.
 `flight-service` and `hotel-service` consume `booking-created` (M10) - the
 platform's first real cross-service event-driven integration, not just
 publish-and-forget. `payment-service` and `booking-service` extend that into
@@ -122,4 +122,8 @@ its own (every document is a rebuildable projection of flight-service's/
 hotel-service's own data). It is also the first fully public service (no
 authentication anywhere) and the first where a duplicate Kafka delivery
 needs no idempotency claim collection, since indexing by id is a natural
-upsert.
+upsert. `gateway` (M14, ADR 0013) fronts every service above it: routing by
+path prefix, a JWT fast-fail check (signature/expiry only - authorization
+stays exclusively in each backend, defense in depth), and Redis-backed rate
+limiting. It is the only container reachable from outside the platform
+boundary besides the SPA build artifacts.
