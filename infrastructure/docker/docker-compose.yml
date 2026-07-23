@@ -1,8 +1,18 @@
 name: travel-platform
 
-# Base local infrastructure for Phase 0. Application services (identity-service,
-# booking-service, ...) are added to this file as they are built, each in its
-# own compose "profile" so the full stack does not have to run at once.
+# Base local infrastructure (Mongo, Kafka, Redis, OpenSearch, LocalStack) plus,
+# under the "apps" profile, all eight backend services - a full local run of the
+# platform, built for M16's load/chaos testing (ROADMAP, docs/adr/0015-load-and-chaos-testing.md).
+# The infra services always start with `make up`; the app services only start
+# with `make apps-up` (`docker compose --profile apps up`), so day-to-day
+# development (each service via `quarkus:dev`) is unaffected.
+#
+# Prerequisites for `make apps-up`:
+#   1. `mvn -f backend/pom.xml package -DskipTests` - the app Dockerfiles copy
+#      target/quarkus-app/, they do not build from source.
+#   2. `terraform -chdir=infrastructure/terraform/environments/local apply` -
+#      provisions the booking-receipts S3 bucket in LocalStack (ADR 0008/0009);
+#      booking-service's health check will fail without it.
 #
 # Usage: make up   (see root Makefile)
 
@@ -21,7 +31,9 @@ services:
     # docs/adr/0003-use-mongodb-as-primary-database.md.
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
-      - "27017:27017"
+      # Host-side 27018, not the default 27017 - avoids colliding with a locally-installed
+      # MongoDB. Containers still reach it as mongodb:27017 over the compose network.
+      - "27018:27017"
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -54,7 +66,9 @@ services:
     container_name: travel-platform-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Host-side 6380, not the default 6379 - a very common local/other-project Redis port to
+      # collide with. Containers still reach it as redis:6379 over the compose network.
+      - "6380:6379"
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -146,6 +160,248 @@ services:
     volumes:
       - localstack_data:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - travel-platform
+
+  toxiproxy:
+    # Chaos-testing only (ROADMAP M16, docs/adr/0015-load-and-chaos-testing.md) - sits between
+    # gateway and one backend so a toxic (latency, connection cut, ...) can be injected on demand
+    # via its HTTP API (port 8474), without touching any application code. Never wired into
+    # gateway's default upstream config - see testing/chaos/README.md for how a proxy is created
+    # and pointed at on demand.
+    profiles: ["chaos"]
+    image: shopify/toxiproxy:2.1.4
+    container_name: travel-platform-toxiproxy
+    restart: unless-stopped
+    ports:
+      - "8474:8474"
+    networks:
+      - travel-platform
+
+  identity-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/identity-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: identity-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  booking-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/booking-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: booking-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # LocalStack, not real AWS - see docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md.
+      BOOKING_AWS_S3_ENDPOINT_OVERRIDE: http://localstack:4566
+      BOOKING_AWS_S3_ACCESS_KEY_ID: test
+      BOOKING_AWS_S3_SECRET_ACCESS_KEY: test
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  flight-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/flight-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: flight-service
+    restart: unless-stopped
+    ports:
+      # Host-side 18083, not 8083 - a common port other local tools grab. Containers still reach
+      # it as flight-service:8083 over the compose network (matching gateway's upstream URL).
+      - "18083:8083"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  hotel-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/hotel-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: hotel-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  payment-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/payment-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  notification-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/notification-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8086/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  search-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/search-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: search-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # OPENSEARCH_HOST/PORT default to "opensearch"/9200 already (application.yml %prod),
+      # matching this compose file's opensearch service name/port - no override needed.
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  gateway:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/gateway
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379
+      # gateway.upstream.* already default to http://<container-name>:<port> under %prod
+      # (application.yml), matching every service name above exactly - no override needed.
+    depends_on:
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      flight-service:
+        condition: service_started
+      hotel-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      search-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - travel-platform
 

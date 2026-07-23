@@ -148,3 +148,23 @@ and this project uses milestone-based versioning as defined in
   (configurable delay, to trigger a real timeout) and a dedicated
   closed-port test resource (to trip the circuit breaker deterministically)
   cover the new gateway behavior end to end.
+- Load & chaos testing (M16, ADR 0015): docker-compose gains an `apps`
+  profile wiring all 8 backend services together on one network with the
+  container names `gateway`'s upstream config already expects, and a
+  `chaos` profile adding Toxiproxy - both layered on the existing infra
+  services without touching the everyday `quarkus:dev` workflow. New
+  `Makefile` targets (`apps-build`/`apps-up`/`apps-down`/`apps-logs`/
+  `apps-ps`). k6 load scripts (`testing/load/k6/`) run against the real
+  stack via the official Docker image, no local install: `search-load.js`
+  (public read-only search, 20 VUs) and `booking-saga-load.js` (the full
+  register → login → create-booking journey, driving the whole
+  choreography saga end to end). Toxiproxy chaos experiment
+  (`testing/chaos/flight-service-latency.sh`) injects latency in front of
+  `flight-service` and confirms, against the real running gateway, that
+  M15's per-backend circuit breaker opens, fails fast, stays fully
+  isolated to `flight-service` (hotels/auth unaffected throughout), and
+  recovers automatically once the fault is removed. All results are
+  measured, not estimated, and written up in
+  `docs/runbooks/load-and-chaos-results.md`, including a real (not
+  hypothetical) finding about the gateway's per-IP rate limiter penalizing
+  many real clients that share one source IP.
