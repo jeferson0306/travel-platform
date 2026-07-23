@@ -29,11 +29,16 @@ _why_ it got that way and what was rejected.
 | `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)                                        |
 | `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                                                 |
 | `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                                                 |
-| `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                                               |
 | `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                                                      |
 | `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), Kafka (consumes `flight-created`/`hotel-created`) |
 | `assistant-service`    | Engineering Q&A grounded in docs/context   | Ollama, local LLM runtime (ADR 0018)                                                      |
 | `gateway`              | Routing, JWT fast-fail, rate limiting      | fronts every service above (ADR 0013), Redis (rate limit counters)                        |
+
+A `currency-service` was sketched in early planning (FX rates, multi-currency
+conversion) but never built - `Money` value objects in `booking-service` and
+`payment-service` carry a currency code today, single-currency, with no
+conversion step. Descoped rather than forgotten: no milestone ever targeted
+it, and nothing downstream depends on it existing.
 
 Full container-level detail: [docs/c4](docs/c4).
 
@@ -121,7 +126,8 @@ This document reflects the target architecture. As of the current milestone
 (Phase 2, M8), `flight-service`, `hotel-service` (Phase 2, M9),
 `payment-service` (Phase 3, M11), `notification-service` (Phase 3, M12),
 `search-service` (Phase 3, M13) and `gateway` (Phase 3, M14, closing the
-phase) are implemented; `currency-service` is still planned.
+phase) are implemented; `currency-service` was descoped (see "Service map"
+above), not deferred.
 `flight-service` and `hotel-service` consume `booking-created` (M10) - the
 platform's first real cross-service event-driven integration, not just
 publish-and-forget. `payment-service` and `booking-service` extend that into

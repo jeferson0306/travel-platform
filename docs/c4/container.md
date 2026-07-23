@@ -15,15 +15,16 @@ C4Container
         Container(payment, "payment-service", "Quarkus", "Payment authorization/capture, idempotency, saga")
         Container(flight, "flight-service", "Quarkus", "Flight inventory & pricing")
         Container(hotel, "hotel-service", "Quarkus", "Hotel inventory & pricing")
-        Container(currency, "currency-service", "Quarkus", "FX rates & conversion")
         Container(notification, "notification-service", "Quarkus", "Email/SMS/push delivery")
         Container(search, "search-service", "Quarkus", "Autocomplete & route/city search - OpenSearch is its only store")
+        Container(assistant, "assistant-service", "Quarkus", "Engineering Q&A grounded in docs/context (ADR 0018)")
 
         ContainerDb(mongo, "MongoDB", "Document store", "Per-service private collections")
         ContainerDb(redis, "Redis", "Cache / sessions / rate limiting")
         ContainerDb(opensearch, "OpenSearch", "Search index")
         Container(kafka, "Kafka", "Event backbone", "booking-created, payment-approved, ...")
         Container(localstack, "LocalStack", "AWS emulation", "S3, SQS, SNS, SES, Secrets Manager")
+        Container(ollama, "Ollama", "Local LLM runtime", "Backs assistant-service, no paid API (ADR 0018)")
     }
 
     Rel(traveler, spa, "Uses", "HTTPS")
@@ -35,11 +36,13 @@ C4Container
     Rel(gateway, payment, "Routes", "HTTPS")
     Rel(gateway, notification, "Routes", "HTTPS")
     Rel(gateway, search, "Routes", "HTTPS")
+    Rel(gateway, assistant, "Routes", "HTTPS")
 
     Rel(booking, flight, "Checks availability", "HTTPS")
     Rel(booking, hotel, "Checks availability", "HTTPS")
     Rel(booking, payment, "Requests payment (saga)", "HTTPS/Kafka")
-    Rel(booking, currency, "Converts amounts", "HTTPS")
+
+    Rel(assistant, ollama, "Prompts", "HTTP")
 
     Rel(booking, kafka, "Publishes booking-*", "Kafka")
     Rel(payment, kafka, "Publishes payment-*", "Kafka")
