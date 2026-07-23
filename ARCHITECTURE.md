@@ -97,9 +97,13 @@ OpenSearch read queries in `@Timeout`/`@Retry`. Every other service's
 resilience story for its Kafka consumers is the Mongo/OpenSearch-backed
 retry queue + DLQ pattern from M10 (ADR 0004's addendum), not Fault
 Tolerance annotations - the two mechanisms would conflict if stacked.
-Operational playbooks for these failure modes belong in
-[docs/runbooks](docs/runbooks), written against real scenarios once chaos
-testing (M16) exercises them - not speculatively.
+Operational playbooks for these failure modes live in
+[docs/runbooks/load-and-chaos-results.md](docs/runbooks/load-and-chaos-results.md)
+(M16, ADR 0015), written against real scenarios a Toxiproxy chaos
+experiment actually exercised against the running platform - not
+speculatively: injecting latency in front of `flight-service` was
+observed to open its `Guard`, fail fast, stay fully isolated from every
+other backend, and recover automatically once the fault cleared.
 
 ## Observability contract
 
@@ -136,6 +140,11 @@ path prefix, a JWT fast-fail check (signature/expiry only - authorization
 stays exclusively in each backend, defense in depth), and Redis-backed rate
 limiting. It is the only container reachable from outside the platform
 boundary besides the SPA build artifacts. Phase 4 (resilience & scale)
-opens with M15 (ADR 0014): fault tolerance applied only to `gateway`'s
+opened with M15 (ADR 0014): fault tolerance applied only to `gateway`'s
 and `search-service`'s genuine synchronous dependencies, not invented
-elsewhere.
+elsewhere. M16 (ADR 0015) then validated that fault tolerance against the
+real running stack: a docker-compose `apps` profile brings up all 8
+services together, k6 load-tests the public search path and the full
+booking saga through `gateway`, and a Toxiproxy chaos experiment confirms
+`gateway`'s per-backend circuit breaker isolates a struggling
+`flight-service` from the rest of the platform and recovers on its own.

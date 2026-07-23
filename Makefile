@@ -40,3 +40,23 @@ logs: ## Tail infrastructure logs
 .PHONY: ps
 ps: ## Show status of local infrastructure containers
 	$(COMPOSE) ps
+
+.PHONY: apps-build
+apps-build: ## Package every backend service (prerequisite for apps-up)
+	mvn -f backend/pom.xml package -DskipTests
+
+.PHONY: apps-up
+apps-up: ## Start infra + all 8 backend services (needs apps-build + Terraform first - see docker-compose.yml)
+	$(COMPOSE) --profile apps up -d --build
+
+.PHONY: apps-down
+apps-down: ## Stop the full stack (infra + apps)
+	$(COMPOSE) --profile apps down
+
+.PHONY: apps-logs
+apps-logs: ## Tail logs for the 8 backend services
+	$(COMPOSE) --profile apps logs -f identity-service booking-service flight-service hotel-service payment-service notification-service search-service gateway
+
+.PHONY: apps-ps
+apps-ps: ## Show status of the full stack (infra + apps)
+	$(COMPOSE) --profile apps ps

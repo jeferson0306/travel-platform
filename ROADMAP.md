@@ -79,8 +79,12 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       read queries. Every other service already had its fault-tolerance
       story since M10 (Mongo-backed retry/DLQ on Kafka consumers) and
       needed nothing new (ADR 0014).
-- [ ] **M16 — Load & chaos testing**: k6/Gatling load profiles, Toxiproxy
-      fault injection, documented failure playbooks.
+- [x] **M16 — Load & chaos testing**: full 8-service stack wired via a
+      docker-compose `apps` profile, k6 load profiles (public search,
+      full booking saga) run against it, Toxiproxy fault injection
+      validating M15's per-backend circuit breaker (isolated failure,
+      automatic recovery), all documented from real measured results,
+      not estimates (ADR 0015).
 - [ ] **M17 — Kubernetes manifests**: deployments, HPA, probes, resource
       requests/limits (documented as portable target, run locally via kind/
       minikube).
