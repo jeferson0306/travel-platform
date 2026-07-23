@@ -97,8 +97,13 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 ## Phase 5 — AI engineering layer
 
-- [ ] **M18 — Repository AI-context layer**: structured `docs/context` and
-      `docs/prompts` so the codebase is consumable by AI agents.
+- [x] **M18 — Repository AI-context layer**: `docs/context` populated with
+      four curated fact files (platform overview, service catalog, event
+      catalog, conventions), `docs/prompts` with five fill-in task
+      templates encoding the platform's mandatory shapes and reference
+      implementations, and a root `AGENTS.md` entry point - curated
+      Markdown over generated dumps, same accuracy contract as the ADRs
+      (ADR 0017).
 - [ ] **M19 — Engineering assistants**: docs assistant, code assistant,
       architecture assistant, deployed as their own service(s).
 

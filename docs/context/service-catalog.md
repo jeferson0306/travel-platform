@@ -1,0 +1,101 @@
+# Service catalog (AI-context layer, ROADMAP M18)
+
+One section per service, same shape every time, so an agent can jump to
+exactly what it needs. Facts only - derived from each service's code and
+`application.yml`; verify against the code before relying on details for a
+change.
+
+Every backend service except `gateway` shares the hexagonal layout
+`api / application / domain / infrastructure` (enforced by ArchUnit tests)
+and the shared conventions in [conventions.md](conventions.md): canonical
+error shape, structured JSON request logs, health/metrics endpoints,
+Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
+(except search-service, which keeps that bookkeeping in OpenSearch).
+
+## identity-service (8081)
+
+- **Owns**: users (email, bcrypt password hash, fullName, role, active).
+- **API**: `POST /api/v1/auth/register` (creates `USER`-role account),
+  `POST /api/v1/auth/login` (returns RS256-signed JWT access token).
+- **Events**: none published, none consumed.
+- **Security note**: holds the platform's only JWT private key; every
+  other service verifies with the public key (ADR 0006 addendum). Roles:
+  USER < MANAGER < ADMIN < SUPER_ADMIN, plus SUPPORT. No self-service
+  role elevation exists.
+- **Perf note**: bcrypt makes registration/login the platform's CPU
+  bottleneck under load (measured, ADR 0015/0016).
+
+## booking-service (8082)
+
+- **Owns**: bookings (`PENDING` → `CONFIRMED` | `CANCELLED`), the saga's
+  central aggregate.
+- **API**: `POST /api/v1/bookings` (flat body: travelerId, travelerEmail,
+  itemType FLIGHT|HOTEL, itemId, quantity, amount, currency),
+  `POST /api/v1/bookings/{id}/cancel`. No GET endpoint. No service-level
+  auth - traveler fields are trusted client input (documented gap).
+- **Publishes**: `booking-created`, `booking-cancelled`,
+  `booking-confirmed` - all via the transactional outbox (ADR 0007).
+- **Consumes**: `payment-authorized` / `payment-failed` (group
+  `booking-payment-outcome`) - confirms or compensates.
+- **Extra**: best-effort JSON receipt to S3 `booking-receipts`
+  (LocalStack locally; not transactional with the booking write - ADR
+  0009).
+
+## flight-service (8083) / hotel-service (8084)
+
+Twins, differing only in the inventory noun (seats vs rooms).
+
+- **Owns**: flight/hotel inventory documents.
+- **API**: `POST /api/v1/flights|hotels` (MANAGER/ADMIN/SUPER_ADMIN),
+  `GET` search - public.
+- **Publishes**: `flight-created` / `hotel-created` (own outbox).
+- **Consumes**: `booking-created` (groups `flight-inventory` /
+  `hotel-inventory`) - atomically decrements inventory when `itemType`
+  matches; idempotent via a `processed_bookings` claim collection.
+
+## payment-service (8085)
+
+- **Owns**: payments (`AUTHORIZED` | `FAILED` | `REFUNDED`), simulated
+  gateway.
+- **API**: `GET /api/v1/payments/{bookingId}` (SUPPORT/ADMIN/SUPER_ADMIN).
+- **Publishes**: `payment-authorized`, `payment-failed`,
+  `payment-refunded`.
+- **Consumes**: `booking-created` (authorize) and `booking-cancelled`
+  (refund), group `payment-processor`; claims bookingIds for idempotency.
+
+## notification-service (8086)
+
+- **Owns**: notifications (`SENT`), simulated email gateway. The saga's
+  terminal step - deliberately no domain events and no outbox (ADR 0011).
+- **API**: `GET /api/v1/notifications/{bookingId}`
+  (SUPPORT/ADMIN/SUPER_ADMIN).
+- **Consumes**: `booking-confirmed`, group `notification-processor`.
+
+## search-service (8087)
+
+- **Owns**: nothing canonical - a rebuildable OpenSearch projection of
+  flight/hotel inventory (ADR 0012). The only service with no MongoDB.
+- **API** (fully public): `GET /api/v1/search/flights`
+  (`origin`+`destination`, or `q=` prefix autocomplete),
+  `GET /api/v1/search/hotels` (`city`, or `q=`).
+- **Consumes**: `flight-created`, `hotel-created`, group `search-indexer`.
+  Idempotency is free (index-by-id is an upsert); retry/DLQ bookkeeping
+  lives in OpenSearch indices (`retry_tasks`/`dead_letters`).
+- **Resilience**: `@Timeout`/`@Retry` on the three read methods only
+  (ADR 0014).
+
+## gateway (8080)
+
+- **Owns**: nothing - stateless except Redis rate-limit counters. Not
+  hexagonal (no domain to protect, ADR 0013).
+- **Behavior**: forwards method/headers/query/body verbatim to the backend
+  owning the first path segment after `/api/v1/` (upstreams configurable
+  via `GATEWAY_UPSTREAM_<SEGMENT>` env vars). Before every proxy:
+  Redis-backed fixed-window rate limit (default 120 req/min per client
+  IP → 429; override `GATEWAY_RATE_LIMIT_REQUESTS_PER_MINUTE`) and a JWT
+  fast-fail check (present-but-invalid token → 401; missing token passes
+  through - authorization stays in each backend).
+- **Resilience** (ADR 0014): one SmallRye `Guard` per backend segment
+  (independent timeout/circuit-breaker/bulkhead), retry only on the
+  idempotent GET/HEAD path; `CircuitBreakerOpenException` → 503, FT
+  timeout → 504, other connect failures → 502.

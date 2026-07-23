@@ -191,3 +191,17 @@ and this project uses milestone-based versioning as defined in
     (plain tcpSocket instead). Verification log:
     `docs/runbooks/kubernetes-verification.md`. No production Java code
     changed.
+- Repository AI-context layer (M18, ADR 0017), opening Phase 5:
+  `docs/context/` populated with four curated fact files
+  (`platform-overview.md`, `service-catalog.md`, `event-catalog.md`,
+  `conventions.md`) covering all 8 services, the booking saga, the full
+  API surface, every Kafka topic and its publishers/consumers, and the
+  rules any change must follow - hand-written and cited back to their
+  authoritative source in the code, not generated dumps or embeddings.
+  `docs/prompts/` gained five fill-in task templates (milestone workflow,
+  new microservice, new endpoint, new Kafka consumer, new ADR), each
+  encoding this platform's mandatory shape for that task and naming a
+  reference implementation to copy from. New root `AGENTS.md` entry point
+  routing to both, front-loading the golden rules (Git Flow with
+  confirmation-gated merges, the `NNNN - Sentence.` commit format,
+  events-only integration). No production code changed.
