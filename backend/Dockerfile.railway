@@ -1,0 +1,34 @@
+# Multi-stage build for Railway deployment (ROADMAP M20). Railway's Docker builder runs `docker
+# build` directly with no separate Maven step (unlike ci.yml/docker-compose, which run `mvn
+# package` before `docker build`) - so unlike every other Dockerfile.jvm in this repo (which just
+# COPYs a pre-built target/quarkus-app/), this one builds Quarkus itself. Build context must be
+# the repo root (Railway service config: source.rootDirectory unset, build.dockerfilePath =
+# backend/Dockerfile.railway) - the whole backend/ tree is needed because Maven's multi-module
+# reactor requires every module declared in backend/pom.xml's <modules> to physically exist, even
+# when building with -pl/-am for a single service.
+#
+# SERVICE_MODULE selects which service this image packages - passed as a Railway build arg per
+# service (e.g. SERVICE_MODULE=identity-service).
+FROM eclipse-temurin:25-jdk-alpine AS build
+ARG SERVICE_MODULE
+RUN test -n "$SERVICE_MODULE" || (echo "SERVICE_MODULE build arg is required" && exit 1)
+WORKDIR /workspace
+RUN apk add --no-cache maven
+COPY backend/ backend/
+# -pl is relative to backend/pom.xml's own directory (backend/), not the build context root -
+# "backend/${SERVICE_MODULE}" here resolves to a nonexistent backend/backend/<service> and fails
+# with "Could not find the selected project in the reactor" (caught by an actual build attempt).
+RUN mvn -B -f backend/pom.xml -pl "${SERVICE_MODULE}" -am package -DskipTests \
+    && cp -r "backend/${SERVICE_MODULE}/target/quarkus-app" /workspace/quarkus-app
+
+FROM eclipse-temurin:25-jre-alpine
+ENV LANGUAGE='en_US:en'
+WORKDIR /deployments
+RUN addgroup -S quarkus && adduser -S quarkus -G quarkus
+COPY --from=build --chown=quarkus:quarkus /workspace/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=quarkus:quarkus /workspace/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=quarkus:quarkus /workspace/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=quarkus:quarkus /workspace/quarkus-app/quarkus/ /deployments/quarkus/
+USER quarkus
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENTRYPOINT ["java", "-jar", "/deployments/quarkus-run.jar"]

@@ -228,3 +228,30 @@ and this project uses milestone-based versioning as defined in
   written and kustomize-validated but not live-deployed to `kind` this
   round (unlike M17) - docker-compose is this milestone's verified
   deployment target, documented as such in ADR 0018.
+- Public-facing polish (M20, ADR 0019), closing Phase 6: a minimal
+  `frontend/` (React 19, TypeScript, Vite, React Router) covering the
+  essential flow - register, log in, search flights/hotels, create a
+  booking, view a static confirmation - added and verified end to end
+  against the real stack (seeded real inventory, real booking, saga
+  confirmed `CONFIRMED`/`AUTHORIZED`/`SENT` in Mongo). No
+  GET-booking-by-id endpoint exists on the platform (a known gap since
+  ADR 0015), so the confirmation page says so instead of faking a status
+  poll. README rewritten with real screenshots from that run (not
+  mockups) and corrected several stale claims left over from early
+  planning (aspirational Grafana/Loki/Tempo/SonarQube tooling that was
+  never built, an outdated frontend stack list). Two real bugs surfaced
+  while seeding the demo data and fixed in place: `ollama`'s
+  docker-compose healthcheck used `wget`, which the `ollama/ollama` image
+  doesn't ship (fixed to `ollama list`); `gateway` silently detached from
+  the Docker network after repeated partial `docker compose up` calls in
+  one long session (fixed by recreating the container - Kubernetes's
+  `tcpSocket` probe for the same service was unaffected). Public backend
+  deployment scoped to the essential-flow services only (Kafka/saga
+  included; OpenSearch/`search-service` and Ollama/`assistant-service`
+  excluded - neither fits a genuinely free hosting tier) after evaluating
+  Render.com and Oracle Cloud Always Free and choosing a paid Railway
+  plan instead of a functionally reduced demo; a new
+  `backend/Dockerfile.railway` (multi-stage, builds Maven itself since
+  Railway's builder has no separate build step) supports it. MongoDB
+  Atlas free tier used for the deployed database. Deployment itself is
+  in progress as of this entry - see ROADMAP M20 and ADR 0019 for status.

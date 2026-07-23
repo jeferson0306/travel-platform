@@ -120,9 +120,15 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
 
 ## Phase 6 — Production polish
 
-- [ ] **M20 — Public-facing polish**: README diagrams/screenshots, deployed
-      demo (frontend on Vercel, backend on a free-tier host), final
-      CHANGELOG pass.
+- [ ] **M20 — Public-facing polish**: README rewritten with real screenshots
+      (register, search, booking confirmation) from a locally seeded run,
+      minimal companion frontend (register/login/search/book) built and
+      verified against the real stack, ADR 0019 scoping the public backend
+      deployment to the essential booking flow (Kafka/saga included,
+      OpenSearch/Ollama excluded - neither fits a free tier). **Deployment
+      itself in progress**: Railway (paid plan, chosen over a free-tier
+      host that would have needed a Kafka-less/simplified saga) + MongoDB
+      Atlas - pending final go-live, not yet checked off.
 
 Milestones are deliberately small — each should be shippable and reviewable
 in a single pull request or a short stack of PRs.
