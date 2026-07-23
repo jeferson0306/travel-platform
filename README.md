@@ -29,6 +29,11 @@ The public demo (frontend on Vercel, backend on Railway) is being finalized
   runs locally with one command (`make apps-up`) and was verified end-to-end
   against the real running stack, screenshots included.
 
+See
+[docs/runbooks/public-demo-verification.md](docs/runbooks/public-demo-verification.md)
+for the full list of public URLs (frontend, gateway, per-service Swagger)
+and how to test the golden path once they're live.
+
 ## Screenshots
 
 Real screenshots from a local run against seeded data - not mockups.

@@ -134,7 +134,10 @@ in place rather than worked around:
   (ADR 0012-0013 for search, ADR 0018 for the assistant) and via
   Kubernetes manifests (ADR 0016-0017).
 - As of this ADR being written, backend deployment to Railway is in
-  progress, pending the user's plan activation - this document will be
-  read alongside `docs/runbooks/` for the actual deployment log once
-  complete, following the same "measured, not speculative" rule every
-  prior ADR in this project has held to.
+  progress, pending the user's plan activation -
+  [docs/runbooks/public-demo-verification.md](../runbooks/public-demo-verification.md)
+  lists every public URL this deployment will produce (frontend, gateway,
+  per-service Swagger) and the golden-path test to run against them, with
+  placeholders to fill in once the domains exist, following the same
+  "measured, not speculative" rule every prior ADR in this project has
+  held to.
