@@ -84,6 +84,23 @@ Twins, differing only in the inventory noun (seats vs rooms).
 - **Resilience**: `@Timeout`/`@Retry` on the three read methods only
   (ADR 0014).
 
+## assistant-service (8088)
+
+- **Owns**: nothing - stateless, read-only. No MongoDB, no Kafka. Its one
+  synchronous external dependency is Ollama (local LLM runtime, ADR 0018),
+  the third such dependency in this platform after gateway->backends and
+  search-service->OpenSearch (ADR 0014) - same `@Timeout`/`@Retry` pattern.
+- **API**: `POST /api/v1/assistant/ask` (`{"question": "..."}` ->
+  `{"answer", "sourcesUsed"}`), gated to MANAGER/ADMIN/SUPER_ADMIN/SUPPORT
+  - an internal engineering tool, not traveler-facing.
+- **How it answers**: "stuffs" the entire `docs/context`/`docs/prompts`
+  corpus (bundled into the JAR at build time, not read from disk at
+  runtime) into the LLM system prompt on every call - no retrieval/vector
+  search step, the corpus is small enough not to need one (ADR 0018).
+- **Model**: `llama3:latest` by default (`OLLAMA_MODEL`), `num_ctx=8192`
+  explicitly set - Ollama's own default (2048) silently truncated this
+  corpus and caused real hallucination in testing before this was fixed.
+
 ## gateway (8080)
 
 - **Owns**: nothing - stateless except Redis rate-limit counters. Not

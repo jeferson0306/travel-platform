@@ -42,6 +42,7 @@ gateway:
     payment: ${GATEWAY_UPSTREAM_PAYMENT:http://localhost:8085}
     notification: ${GATEWAY_UPSTREAM_NOTIFICATION:http://localhost:8086}
     search: ${GATEWAY_UPSTREAM_SEARCH:http://localhost:8087}
+    assistant: ${GATEWAY_UPSTREAM_ASSISTANT:http://localhost:8088}
 
 "%dev":
   quarkus:
@@ -70,3 +71,4 @@ gateway:
       payment: http://payment-service:8085
       notification: http://notification-service:8086
       search: http://search-service:8087
+      assistant: http://assistant-service:8088

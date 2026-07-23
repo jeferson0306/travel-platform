@@ -34,7 +34,7 @@ agents.
 
 ## Layout
 
-- `backend/` - 8 Quarkus services (hexagonal, ArchUnit-enforced) + parent
+- `backend/` - 9 Quarkus services (hexagonal, ArchUnit-enforced) + parent
   POM.
 - `infrastructure/` - docker-compose (+`apps`/`chaos` profiles), Kafka
   topic script, Kubernetes (Kustomize base + local overlay), Terraform.

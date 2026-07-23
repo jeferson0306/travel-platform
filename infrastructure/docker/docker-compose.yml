@@ -396,8 +396,73 @@ services:
         condition: service_started
       search-service:
         condition: service_started
+      assistant-service:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  ollama:
+    # Local LLM runtime backing assistant-service (ROADMAP M19, docs/adr/0018-engineering-assistant.md) -
+    # chosen specifically because it's free/local, unlike a paid hosted LLM API. Not a chaos-testing-only
+    # opt-in like toxiproxy: it's a real dependency of a real "apps" service, so it lives in the same
+    # profile.
+    profiles: ["apps"]
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:11434 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - travel-platform
+
+  ollama-init:
+    # Pulls the model assistant-service defaults to (llama3:latest) via Ollama's own HTTP API -
+    # same one-shot bootstrap pattern as mongodb-init/kafka-init. ~4.7GB, so this step is genuinely
+    # slow the first time (image layer is cached afterward, in the ollama_data volume).
+    profiles: ["apps"]
+    image: curlimages/curl:8.11.1
+    container_name: ollama-init
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        curl -s -X POST http://ollama:11434/api/pull -d '{"model": "llama3:latest", "stream": false}'
+    networks:
+      - travel-platform
+
+  assistant-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/assistant-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: assistant-service
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8088/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -414,3 +479,4 @@ volumes:
   kafka_data:
   localstack_data:
   opensearch_data:
+  ollama_data:

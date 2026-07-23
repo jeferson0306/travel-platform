@@ -32,6 +32,7 @@ _why_ it got that way and what was rejected.
 | `currency-service`     | FX rates, multi-currency conversion        | consumed by booking/payment                                                               |
 | `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                                                      |
 | `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), Kafka (consumes `flight-created`/`hotel-created`) |
+| `assistant-service`    | Engineering Q&A grounded in docs/context   | Ollama, local LLM runtime (ADR 0018)                                                      |
 | `gateway`              | Routing, JWT fast-fail, rate limiting      | fronts every service above (ADR 0013), Redis (rate limit counters)                        |
 
 Full container-level detail: [docs/c4](docs/c4).
@@ -153,4 +154,9 @@ M17 (ADR 0016) closes the phase with Kubernetes manifests
 Deployments/Services/HPAs with probes on the M6 health endpoints, deployed
 and verified end-to-end on a real local kind cluster - including the full
 booking saga completing in-cluster and HPA scaling observed under genuine
-CPU load, not just configured.
+CPU load, not just configured. Phase 5 (AI engineering layer) opened with
+M18 (ADR 0017: curated `docs/context`/`docs/prompts` + root `AGENTS.md`)
+and continued with M19 (ADR 0018): `assistant-service`, a ninth backend
+service answering engineering questions grounded in that same
+docs/context corpus, backed by a local Ollama runtime rather than a paid
+hosted LLM API - consistent with this platform's local-first posture.
