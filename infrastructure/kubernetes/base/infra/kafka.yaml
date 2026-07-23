@@ -1,0 +1,183 @@
+# Mirrors docker-compose's kafka service exactly (single-node KRaft broker, same env vars) - no
+# Zookeeper, no Strimzi/Bitnami chart, matching the compose file's own choice to stay on the plain
+# apache/kafka image rather than pull in an operator for a single local broker. Idle memory
+# measured at ~737MiB with `docker stats` against the running stack (the JVM's own footprint
+# dominates at this data volume, not broker load) - request/limit sized from that measurement.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data
+  namespace: travel-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: travel-platform
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: kafka }
+  template:
+    metadata:
+      labels: { app: kafka }
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:3.8.0
+          ports:
+            - containerPort: 19092
+            - containerPort: 19093
+          env:
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_LISTENERS, value: "PLAINTEXT://:19092,CONTROLLER://:19093" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:19092" }
+            - {
+                name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP,
+                value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+              }
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@kafka:19093" }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
+            - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "false" }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { cpu: 1000m, memory: 1536Mi }
+          # docker-compose's healthcheck ran kafka-broker-api-versions.sh, which spins up a whole
+          # extra short-lived JVM per check. That's tolerable as a one-off Docker healthcheck but
+          # was a genuine problem as a Kubernetes probe on a memory-constrained kind node: under
+          # real contention with 12 other pods, the probe JVM itself competed for the same
+          # CPU/memory it was trying to verify, and the resulting slow/failed checks caused
+          # `kafka`'s own liveness probe to kill and restart it repeatedly - observed directly on
+          # a real local run (ADR 0016). A plain TCP check on the broker port carries none of that
+          # cost and is what these probes use instead.
+          readinessProbe:
+            tcpSocket: { port: 19092 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 19092 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: kafka-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # Every service's KAFKA_BOOTSTRAP_SERVERS is kafka:19092 - name must stay "kafka". No
+  # PLAINTEXT_HOST listener here (unlike compose): nothing outside the cluster needs to reach
+  # Kafka directly, so that listener (compose's host-debugging escape hatch) was dropped.
+  name: kafka
+  namespace: travel-platform
+spec:
+  # Headless (no ClusterIP), not the default - a genuine finding from a real kind run, not a
+  # stylistic choice (ADR 0016). KAFKA_CONTROLLER_QUORUM_VOTERS is set to kafka:19093, so a
+  # single-node KRaft broker constantly heartbeats its own controller through this Service's own
+  # address. With a normal ClusterIP, that means the pod connects to itself via kube-proxy's
+  # hairpin NAT - which failed outright on this kind/kindnet setup ("connection refused" in a
+  # loop, broker never finishes controller registration, crash-loops indefinitely). A headless
+  # Service resolves "kafka" straight to the pod's own IP over plain cluster DNS, skipping
+  # kube-proxy entirely for this path - self-connection stopped being a special case.
+  #
+  # publishNotReadyAddresses is required on top of that, and was the second half of this finding:
+  # a headless Service only publishes DNS records for endpoints that are already Ready, but the
+  # controller-registration heartbeat above happens *before* the broker passes its own readiness
+  # probe - so "kafka" resolved to nothing (UnknownHostException) until this was set, and the
+  # broker could never become ready in the first place. Safe here specifically because this
+  # Service has exactly one possible backend (the broker itself); nothing else ever depends on
+  # `kafka` only resolving once traffic is safe to send.
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector: { app: kafka }
+  ports:
+    - name: broker
+      port: 19092
+      targetPort: 19092
+    - name: controller
+      port: 19093
+      targetPort: 19093
+---
+# create-topics.sh (infrastructure/kafka/create-topics.sh) reused verbatim via ConfigMap - same
+# script docker-compose's kafka-init container runs, so topic definitions live in exactly one
+# place regardless of which orchestrator runs them.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-create-topics
+  namespace: travel-platform
+data:
+  create-topics.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    BOOTSTRAP_SERVER="kafka:19092"
+    TOPICS_BIN="/opt/kafka/bin/kafka-topics.sh"
+
+    create_topic() {
+      local topic="$1"
+      "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" \
+        --create --if-not-exists \
+        --topic "$topic" \
+        --partitions 3 \
+        --replication-factor 1
+    }
+
+    create_topic "booking-created"
+    create_topic "booking-cancelled"
+    create_topic "booking-created.flight-inventory.dlq"
+    create_topic "booking-created.hotel-inventory.dlq"
+    create_topic "payment-authorized"
+    create_topic "payment-failed"
+    create_topic "payment-refunded"
+    create_topic "booking-created.payment-processor.dlq"
+    create_topic "booking-cancelled.payment-processor.dlq"
+    create_topic "payment-authorized.booking-payment-outcome.dlq"
+    create_topic "payment-failed.booking-payment-outcome.dlq"
+    create_topic "booking-confirmed"
+    create_topic "booking-confirmed.notification-processor.dlq"
+    create_topic "flight-created"
+    create_topic "hotel-created"
+    create_topic "flight-created.search-indexer.dlq"
+    create_topic "hotel-created.search-indexer.dlq"
+
+    echo "Topics ready:"
+    "$TOPICS_BIN" --bootstrap-server "$BOOTSTRAP_SERVER" --list
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-init
+  namespace: travel-platform
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kafka-init
+          image: apache/kafka:3.8.0
+          command: ["/bin/bash", "/scripts/create-topics.sh"]
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: kafka-create-topics
+            defaultMode: 0755

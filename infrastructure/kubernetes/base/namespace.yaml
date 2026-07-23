@@ -1,0 +1,7 @@
+# ROADMAP M17 (docs/adr/0016-kubernetes-manifests.md). One namespace for the whole platform -
+# there is no multi-tenant concern here, so splitting infra/apps into separate namespaces would
+# only add cross-namespace DNS (mongodb.infra.svc.cluster.local instead of mongodb) for no benefit.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travel-platform

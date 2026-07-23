@@ -1,0 +1,69 @@
+# Mirrors docker-compose's opensearch service - single-node, security plugin disabled (local
+# only, same as the Testcontainers setup search-service's own tests use, ADR 0012). Heap is
+# capped at 512m by OPENSEARCH_JAVA_OPTS (same as compose); idle memory measured at ~626MiB with
+# `docker stats`, so the request/limit below leave roughly that much headroom above the heap cap
+# rather than being an arbitrary guess.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opensearch-data
+  namespace: travel-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch
+  namespace: travel-platform
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: opensearch }
+  template:
+    metadata:
+      labels: { app: opensearch }
+    spec:
+      containers:
+        - name: opensearch
+          image: opensearchproject/opensearch:3.7.0
+          env:
+            - { name: discovery.type, value: "single-node" }
+            - { name: DISABLE_SECURITY_PLUGIN, value: "true" }
+            - { name: OPENSEARCH_JAVA_OPTS, value: "-Xms512m -Xmx512m" }
+          ports:
+            - containerPort: 9200
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/opensearch/data
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { cpu: 1000m, memory: 1536Mi }
+          readinessProbe:
+            httpGet: { path: /_cluster/health, port: 9200 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /_cluster/health, port: 9200 }
+            initialDelaySeconds: 40
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: opensearch-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # search-service's OPENSEARCH_HOST defaults to "opensearch" - name must stay as-is.
+  name: opensearch
+  namespace: travel-platform
+spec:
+  selector: { app: opensearch }
+  ports:
+    - port: 9200
+      targetPort: 9200

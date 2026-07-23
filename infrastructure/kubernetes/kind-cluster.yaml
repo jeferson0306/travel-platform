@@ -1,0 +1,13 @@
+# `kind create cluster --config infrastructure/kubernetes/kind-cluster.yaml` - single node,
+# forwards the host's 8080 to the gateway's fixed NodePort (30080, see
+# overlays/local/gateway-service-patch.yaml) so the platform is reachable at
+# http://localhost:8080 exactly like the docker-compose stack (ROADMAP M16) was.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: travel-platform
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP

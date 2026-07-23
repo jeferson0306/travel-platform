@@ -85,9 +85,15 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       validating M15's per-backend circuit breaker (isolated failure,
       automatic recovery), all documented from real measured results,
       not estimates (ADR 0015).
-- [ ] **M17 — Kubernetes manifests**: deployments, HPA, probes, resource
-      requests/limits (documented as portable target, run locally via kind/
-      minikube).
+- [x] **M17 — Kubernetes manifests**: Kustomize base (Deployments,
+      Services, HPAs, readiness/liveness probes on `/health/ready` and
+      `/health/live`, measured resource requests/limits) + a local overlay,
+      actually deployed and verified end-to-end on a real `kind` cluster -
+      full smoke test through the gateway including a complete booking
+      saga, and HPA observed genuinely scaling under real CPU load. Three
+      real Kubernetes-specific bugs found and fixed by running it
+      (service-link env-var injection, KRaft self-hairpin, probe cost) -
+      ADR 0016. Closes Phase 4.
 
 ## Phase 5 — AI engineering layer
 

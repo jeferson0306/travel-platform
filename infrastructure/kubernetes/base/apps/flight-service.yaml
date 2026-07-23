@@ -1,0 +1,70 @@
+# Resource sizing rationale: see identity-service.yaml / ADR 0016. Idle memory measured ~157MiB.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-service
+  namespace: travel-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: flight-service }
+  template:
+    metadata:
+      labels: { app: flight-service }
+    spec:
+      # Kubernetes auto-injects <SERVICE>_PORT/<SERVICE>_HOST env vars for every Service in
+      # the namespace (legacy Docker-links behavior) - search-service crashed on a real kind run
+      # because the opensearch Service produced OPENSEARCH_PORT=tcp://10.x.x.x:9200, colliding
+      # with and overriding this app's own OPENSEARCH_PORT=9200 expectation (ADR 0016). DNS
+      # (the Service name itself) is how every service already finds the others, so these
+      # injected vars are pure risk with no upside - disabled everywhere, not just search-service.
+      enableServiceLinks: false
+      containers:
+        - name: flight-service
+          image: travel-platform-flight-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            - { name: MONGO_URI, value: "mongodb://mongodb:27017/?replicaSet=rs0" }
+            - { name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:19092" }
+          resources:
+            requests: { cpu: 100m, memory: 224Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8083 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8083 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-service
+  namespace: travel-platform
+spec:
+  selector: { app: flight-service }
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: flight-service
+  namespace: travel-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: flight-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
