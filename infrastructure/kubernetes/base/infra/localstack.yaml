@@ -1,0 +1,78 @@
+# Mirrors docker-compose's localstack service - booking-service's receipt upload (ADR 0008/0009)
+# is best-effort, not transactional with the booking write, so this being unready briefly at
+# startup never blocks booking-service itself. The docker.sock bind mount compose uses (for
+# LocalStack's Lambda/container support) is dropped - nothing this platform provisions
+# (S3/SQS/SNS/SES/SecretsManager/SSM/EventBridge) needs it. The `booking-receipts` bucket itself
+# is still created the same way it is against docker-compose's LocalStack: `aws --endpoint-url
+# ... s3 mb` (or Terraform) run once against the cluster, not by this manifest - provisioning a
+# bucket isn't a Kubernetes workload concern.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: localstack-data
+  namespace: travel-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: travel-platform
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: localstack }
+  template:
+    metadata:
+      labels: { app: localstack }
+    spec:
+      containers:
+        - name: localstack
+          image: localstack/localstack:3.7
+          env:
+            - { name: SERVICES, value: "s3,sqs,sns,ses,secretsmanager,ssm,eventbridge" }
+            - { name: DEBUG, value: "0" }
+            - { name: PERSISTENCE, value: "1" }
+          ports:
+            - containerPort: 4566
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/localstack
+          resources:
+            requests: { cpu: 100m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          readinessProbe:
+            httpGet: { path: /_localstack/health, port: 4566 }
+            # LocalStack's health endpoint took longer than 1s (the probe default) to respond
+            # under real load on a kind cluster - without an explicit timeoutSeconds, the probe
+            # itself times out well before the app is actually unhealthy, causing a false-failure
+            # restart loop.
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: { path: /_localstack/health, port: 4566 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: localstack-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # booking-service's BOOKING_AWS_S3_ENDPOINT_OVERRIDE is http://localstack:4566.
+  name: localstack
+  namespace: travel-platform
+spec:
+  selector: { app: localstack }
+  ports:
+    - port: 4566
+      targetPort: 4566

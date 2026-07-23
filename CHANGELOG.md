@@ -168,3 +168,26 @@ and this project uses milestone-based versioning as defined in
   `docs/runbooks/load-and-chaos-results.md`, including a real (not
   hypothetical) finding about the gateway's per-IP rate limiter penalizing
   many real clients that share one source IP.
+- Kubernetes manifests (M17, ADR 0016), closing Phase 4:
+  `infrastructure/kubernetes/` with a Kustomize base (Deployment + Service
+  - HPA per backend service, single-replica Mongo/Kafka/Redis/OpenSearch/
+    LocalStack with PVCs, one-shot init Jobs replacing docker-compose's
+    mongodb-init/kafka-init containers, reusing the same
+    `create-topics.sh` topic list) and a `local` overlay (gateway as
+    NodePort 30080 for kind's port mapping, machine-specific resource
+    trims). Readiness/liveness probes split onto `/health/ready` /
+    `/health/live` (built in M6 for exactly this). Deployed for real to a
+    local kind cluster and verified end-to-end through the gateway: full
+    register → login → create-flight → book flow, saga completion confirmed
+    in Mongo (CONFIRMED/AUTHORIZED/SENT), flight indexed into search via
+    in-cluster Kafka, and HPA observed organically scaling booking-service
+    and payment-service 1→2 replicas under real CPU load. Three genuine
+    Kubernetes-specific bugs were found only by running it and are fixed in
+    the manifests: auto-injected `<SERVICE>_PORT` env vars crashing
+    search-service (`enableServiceLinks: false` everywhere), the single-node
+    KRaft broker unable to reach its own controller through a ClusterIP
+    Service (headless + `publishNotReadyAddresses`), and docker-compose's
+    JVM-spawning Kafka healthcheck being too expensive as a liveness probe
+    (plain tcpSocket instead). Verification log:
+    `docs/runbooks/kubernetes-verification.md`. No production Java code
+    changed.

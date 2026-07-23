@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - infra/mongodb.yaml
+  - infra/kafka.yaml
+  - infra/redis.yaml
+  - infra/opensearch.yaml
+  - infra/localstack.yaml
+  - apps/identity-service.yaml
+  - apps/booking-service.yaml
+  - apps/flight-service.yaml
+  - apps/hotel-service.yaml
+  - apps/payment-service.yaml
+  - apps/notification-service.yaml
+  - apps/search-service.yaml
+  - apps/gateway.yaml

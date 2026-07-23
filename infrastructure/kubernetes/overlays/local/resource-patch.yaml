@@ -1,0 +1,192 @@
+# The base manifests' resource requests/limits target a real cluster with real headroom (see
+# ADR 0016). This machine's Docker Desktop VM only has ~3.8GiB total, which the base's sum of
+# requests (~3.7GiB across 13 workloads) leaves no room in for kube-system itself - `kafka`
+# landed `Pending` with "Insufficient memory" the first time this ran against `kind` here. Rather
+# than quietly shrinking the "real" numbers in base (which should stay honest about what a real
+# deployment needs), this overlay - whose whole job is "how this runs on my machine" - trims
+# memory requests/limits down to fit, roughly proportional to each container's actual measured
+# idle footprint (ADR 0016) with much thinner headroom than base. A real cluster should use base
+# directly, or its own overlay sized for its own capacity.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: identity-service
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 300m, memory: 288Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: booking-service
+          resources:
+            requests: { cpu: 50m, memory: 160Mi }
+            limits: { cpu: 300m, memory: 320Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: flight-service
+          resources:
+            requests: { cpu: 50m, memory: 144Mi }
+            limits: { cpu: 300m, memory: 288Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotel-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: hotel-service
+          resources:
+            requests: { cpu: 50m, memory: 144Mi }
+            limits: { cpu: 300m, memory: 288Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: payment-service
+          resources:
+            requests: { cpu: 50m, memory: 160Mi }
+            limits: { cpu: 300m, memory: 320Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: notification-service
+          resources:
+            requests: { cpu: 50m, memory: 160Mi }
+            limits: { cpu: 300m, memory: 320Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-service
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: search-service
+          resources:
+            requests: { cpu: 50m, memory: 144Mi }
+            limits: { cpu: 300m, memory: 288Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: gateway
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 300m, memory: 224Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodb
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 320Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: kafka
+          env:
+            # Not set in base: without an explicit heap cap the broker JVM sizes its heap off the
+            # container's visible memory, which fights directly with the tighter limit below -
+            # same reasoning as opensearch's OPENSEARCH_JAVA_OPTS in base.
+            - { name: KAFKA_HEAP_OPTS, value: "-Xms256m -Xmx512m" }
+          resources:
+            requests: { cpu: 100m, memory: 560Mi }
+            limits: { cpu: 500m, memory: 896Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: opensearch
+          resources:
+            # 832Mi got OOMKilled on a real run despite the 512m JVM heap cap (OPENSEARCH_JAVA_OPTS
+            # in base) - non-heap native memory (Lucene's off-heap segments, thread stacks,
+            # metaspace) needs real room on top of the heap, not just a small margin.
+            requests: { cpu: 100m, memory: 768Mi }
+            limits: { cpu: 500m, memory: 1280Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: travel-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: localstack
+          resources:
+            # LocalStack got OOMKilled repeatedly at a 64Mi/160Mi request/limit on this machine's
+            # first kind run (~4GiB Docker Desktop VM) - it needs noticeably more than its idle
+            # footprint once its API server actually starts handling requests (S3, SQS, SNS, SES,
+            # SecretsManager, SSM and EventBridge are all enabled). It was scaled to 0 entirely for
+            # that run (booking-service's receipt upload is best-effort/non-transactional, ADR
+            # 0008/0009, so booking creation is unaffected either way) and re-enabled here after
+            # raising the Docker Desktop VM to 8GiB - but even 320Mi still got OOMKilled once its
+            # API server was actually serving requests, so the limit is higher again - see ADR 0016.
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { cpu: 300m, memory: 512Mi }

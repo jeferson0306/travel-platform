@@ -148,3 +148,9 @@ services together, k6 load-tests the public search path and the full
 booking saga through `gateway`, and a Toxiproxy chaos experiment confirms
 `gateway`'s per-backend circuit breaker isolates a struggling
 `flight-service` from the rest of the platform and recovers on its own.
+M17 (ADR 0016) closes the phase with Kubernetes manifests
+(`infrastructure/kubernetes/`, Kustomize base + local overlay): per-service
+Deployments/Services/HPAs with probes on the M6 health endpoints, deployed
+and verified end-to-end on a real local kind cluster - including the full
+booking saga completing in-cluster and HPA scaling observed under genuine
+CPU load, not just configured.
