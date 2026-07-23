@@ -1,0 +1,58 @@
+quarkus:
+  application:
+    name: assistant-service
+  http:
+    port: 8088
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale - no collector
+    # locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  rest-client:
+    ollama:
+      url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      # Local Ollama on unaccelerated hardware is genuinely slow for a full response - this is
+      # not tuned down from a "real" number, it is the number that let a real answer come back
+      # in testing (docs/adr/0018-engineering-assistant.md). One retry (below) on top of this.
+      read-timeout: ${OLLAMA_TIMEOUT_MS:60000}
+      connect-timeout: 5000
+
+# No MongoDB, no Kafka config here on purpose - this service is stateless and read-only
+# (docs/adr/0018-engineering-assistant.md). Its one synchronous external dependency is Ollama.
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+
+assistant:
+  ollama:
+    model: ${OLLAMA_MODEL:llama3:latest}
+    # Ollama's own default (2048) is smaller than this service's ~7,000-token grounding corpus -
+    # a real test run without this set demonstrated the failure mode directly (the model silently
+    # dropped the corpus and hallucinated an unrelated answer instead of admitting it didn't know,
+    # ADR 0018). 8192 matches llama3:latest's own trained context length.
+    num-ctx: ${OLLAMA_NUM_CTX:8192}
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false

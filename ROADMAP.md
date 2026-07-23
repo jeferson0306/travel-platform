@@ -104,8 +104,19 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       implementations, and a root `AGENTS.md` entry point - curated
       Markdown over generated dumps, same accuracy contract as the ADRs
       (ADR 0017).
-- [ ] **M19 — Engineering assistants**: docs assistant, code assistant,
-      architecture assistant, deployed as their own service(s).
+- [x] **M19 — Engineering assistant**: `assistant-service` (ninth backend
+      service, port 8088), hexagonal like every other service, answering
+      questions about this platform grounded in the whole docs/context
+      corpus ("stuff everything" RAG - no vector DB needed at this size).
+      Backed by a local Ollama runtime (free, no paid API - matches this
+      platform's local-first posture), gated behind the gateway like
+      every other segment. Real end-to-end test against the actual model
+      found and fixed a genuine hallucination bug (Ollama's default
+      context window silently truncated the corpus) before the answers
+      were verified correct and cited (ADR 0018). Scoped from three
+      assistants (docs/code/architecture) down to one, and Kubernetes
+      wiring is manifests-only (not live-deployed, unlike M17) - both
+      explicit trade-offs, not omissions.
 
 ## Phase 6 — Production polish
 

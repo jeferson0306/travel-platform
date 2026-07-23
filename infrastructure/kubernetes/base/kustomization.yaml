@@ -8,6 +8,7 @@ resources:
   - infra/redis.yaml
   - infra/opensearch.yaml
   - infra/localstack.yaml
+  - infra/ollama.yaml
   - apps/identity-service.yaml
   - apps/booking-service.yaml
   - apps/flight-service.yaml
@@ -15,4 +16,5 @@ resources:
   - apps/payment-service.yaml
   - apps/notification-service.yaml
   - apps/search-service.yaml
+  - apps/assistant-service.yaml
   - apps/gateway.yaml

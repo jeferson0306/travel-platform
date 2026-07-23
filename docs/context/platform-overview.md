@@ -6,7 +6,7 @@ the code disagree, the code wins and this file has a bug.
 
 ## What this is
 
-An event-driven travel platform: 8 Quarkus (Java 25) microservices behind
+An event-driven travel platform: 9 Quarkus (Java 25) microservices behind
 a single gateway, communicating exclusively via Kafka events (no
 synchronous service-to-service REST anywhere - ADR 0004, verified by audit
 in ADR 0014). Bookings drive a choreography saga:
@@ -24,10 +24,12 @@ booking → payment authorization → booking confirmation → notification.
 | `payment-service`      | 8085 | MongoDB `payment`      | Read: SUPPORT/ADMIN+                  | Simulated payment authorization/refund (saga step)         |
 | `notification-service` | 8086 | MongoDB `notification` | Read: SUPPORT/ADMIN+                  | Booking confirmation email (simulated); saga terminal step |
 | `search-service`       | 8087 | OpenSearch only        | Fully public                          | Flight/hotel search + autocomplete projection (ADR 0012)   |
+| `assistant-service`    | 8088 | none (stateless)       | MANAGER/ADMIN/SUPER_ADMIN/SUPPORT     | Engineering Q&A grounded in docs/context (ADR 0018)        |
 
 Infra: MongoDB (single-node replica set `rs0` - transactions for the
 outbox), Kafka (single KRaft broker, `kafka:19092` in-network), Redis,
-OpenSearch, LocalStack (S3 `booking-receipts` bucket, ADR 0008/0009).
+OpenSearch, LocalStack (S3 `booking-receipts` bucket, ADR 0008/0009),
+Ollama (local LLM runtime backing assistant-service, ADR 0018).
 
 ## HTTP API surface (all through `gateway` at `/api/v1/...`)
 
@@ -41,6 +43,8 @@ OpenSearch, LocalStack (S3 `booking-receipts` bucket, ADR 0008/0009).
 - `GET /api/v1/notifications/{bookingId}` (SUPPORT/ADMIN/SUPER_ADMIN).
 - `GET /api/v1/search/flights`, `GET /api/v1/search/hotels` - public,
   route/city params or `q=` prefix autocomplete.
+- `POST /api/v1/assistant/ask` (MANAGER/ADMIN/SUPER_ADMIN/SUPPORT) - the
+  engineering assistant (ADR 0018), not traveler-facing.
 - Every service: `/health`, `/health/ready`, `/health/live`, `/q/metrics`.
 
 There is no GET-booking-by-id endpoint and no self-service role elevation
@@ -74,4 +78,4 @@ There is no GET-booking-by-id endpoint and no self-service role elevation
 - Kafka topics and payloads: [event-catalog.md](event-catalog.md) and
   [docs/events](../events)
 - Rules any change must follow: [conventions.md](conventions.md)
-- Design decisions: [docs/adr](../adr) (0001-0016, all Accepted)
+- Design decisions: [docs/adr](../adr) (0001-0018, all Accepted)

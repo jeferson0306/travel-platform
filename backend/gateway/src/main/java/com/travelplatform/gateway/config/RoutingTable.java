@@ -22,7 +22,8 @@ public class RoutingTable {
             @ConfigProperty(name = "gateway.upstream.hotel") String hotel,
             @ConfigProperty(name = "gateway.upstream.payment") String payment,
             @ConfigProperty(name = "gateway.upstream.notification") String notification,
-            @ConfigProperty(name = "gateway.upstream.search") String search) {
+            @ConfigProperty(name = "gateway.upstream.search") String search,
+            @ConfigProperty(name = "gateway.upstream.assistant") String assistant) {
         this.baseUrlsBySegment =
                 Map.ofEntries(
                         Map.entry("auth", identity),
@@ -31,7 +32,8 @@ public class RoutingTable {
                         Map.entry("hotels", hotel),
                         Map.entry("payments", payment),
                         Map.entry("notifications", notification),
-                        Map.entry("search", search));
+                        Map.entry("search", search),
+                        Map.entry("assistant", assistant));
     }
 
     /**

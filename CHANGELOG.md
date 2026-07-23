@@ -205,3 +205,26 @@ and this project uses milestone-based versioning as defined in
   routing to both, front-loading the golden rules (Git Flow with
   confirmation-gated merges, the `NNNN - Sentence.` commit format,
   events-only integration). No production code changed.
+- `assistant-service`: ninth microservice, the engineering assistant (M19,
+  ADR 0018). Hexagonal like every other service, no MongoDB/Kafka -
+  stateless, read-only, one synchronous external dependency (Ollama, the
+  third such dependency in this platform after gateway->backends and
+  search-service->OpenSearch, same `@Timeout`/`@Retry` shape, ADR 0014).
+  `POST /api/v1/assistant/ask` "stuffs" the entire docs/context/docs/prompts
+  corpus (bundled into the JAR at build time, ~7,000 tokens) into the LLM
+  system prompt on every call - no vector DB, the corpus is too small to
+  need one - and is gated to MANAGER/ADMIN/SUPER_ADMIN/SUPPORT like
+  payment-service's/notification-service's read endpoints. Backed by a
+  local Ollama runtime (free, matching this platform's local-first
+  posture: LocalStack, kind, Toxiproxy) - `llama3:latest` by default. A
+  real test against the actual model initially hallucinated a completely
+  unrelated answer; root cause was Ollama's default 2048-token context
+  window silently truncating the corpus, fixed by explicitly setting
+  `num_ctx=8192` on every request, after which two separate real
+  questions both came back correct and cited. `gateway` gained an eighth
+  upstream segment (`assistant`); `docker-compose.yml`'s `apps` profile
+  gained `ollama`/`ollama-init`/`assistant-service`, mirroring the
+  mongodb-init/kafka-init bootstrap pattern. Kubernetes manifests were
+  written and kustomize-validated but not live-deployed to `kind` this
+  round (unlike M17) - docker-compose is this milestone's verified
+  deployment target, documented as such in ADR 0018.
