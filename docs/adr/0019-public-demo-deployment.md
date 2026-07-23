@@ -82,6 +82,19 @@ to physically exist on disk even when building a single module with
 "isolated monorepo" pattern) doesn't work here; the "shared monorepo"
 pattern (full repo context, service selection via a build arg) does.
 
+### API docs: each service's Swagger UI exposed directly, not only via the gateway
+
+The gateway proxies only `/api/v1/...` paths, unchanged (ADR 0013) - it does
+not rewrite or aggregate `/q/swagger-ui`/`/q/openapi`, which every service
+exposes individually (`quarkus-smallrye-openapi`, present since M6). Locally
+this is a non-issue since docker-compose publishes every service's own port.
+For the public demo, each of the six essential-flow Railway services gets
+its own public domain (in addition to the gateway's), specifically so
+`/q/swagger-ui` stays reachable per service - chosen over building a
+gateway-side aggregator (more code, for a documentation surface only) or
+hiding the docs entirely (a portfolio demo should let a visitor see the API
+contracts directly, not just call them through the SPA).
+
 ## Findings
 
 Preparing local screenshots for this milestone's README pass (seeding
