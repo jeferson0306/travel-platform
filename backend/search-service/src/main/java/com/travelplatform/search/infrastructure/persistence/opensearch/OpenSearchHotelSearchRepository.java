@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.Refresh;
@@ -16,6 +18,8 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 /**
  * Indexing by {@code hotelId} is an upsert (see {@link HotelSearchRepository#index}) - same
  * free-idempotency reasoning as {@link OpenSearchFlightSearchRepository}.
+ * {@code @Timeout}/{@code @Retry} on the read methods only - same reasoning as {@link
+ * OpenSearchFlightSearchRepository}, see docs/adr/0014-fault-tolerance.md.
  */
 @ApplicationScoped
 public class OpenSearchHotelSearchRepository implements HotelSearchRepository {
@@ -51,6 +55,8 @@ public class OpenSearchHotelSearchRepository implements HotelSearchRepository {
     }
 
     @Override
+    @Timeout(3000)
+    @Retry(maxRetries = 2, delay = 100)
     public List<SearchableHotel> searchByCity(String city) {
         var normalized = city.toLowerCase(Locale.ROOT);
         var query =
@@ -59,6 +65,8 @@ public class OpenSearchHotelSearchRepository implements HotelSearchRepository {
     }
 
     @Override
+    @Timeout(3000)
+    @Retry(maxRetries = 2, delay = 100)
     public List<SearchableHotel> autocomplete(String prefix) {
         var normalized = prefix.toLowerCase(Locale.ROOT);
         var namePrefix = Query.of(q -> q.prefix(p -> p.field("nameLower").value(normalized)));
