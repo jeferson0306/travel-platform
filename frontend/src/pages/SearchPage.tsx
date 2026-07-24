@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { PlaneTakeoff, BedDouble, SearchX, CalendarSearch } from 'lucide-react';
 import { api, friendlyErrorMessage, type Flight, type Hotel } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SiteHeader } from '../components/SiteHeader';
@@ -11,6 +12,9 @@ import { CityAutocomplete } from '../components/CityAutocomplete';
 
 const dateInputClass =
   'mt-1 w-full rounded-lg border border-ink-950/15 bg-white px-3 py-2 text-ink-950 outline-none transition focus:border-pine-500 focus:ring-2 focus:ring-pine-500/20';
+
+const tap = { whileHover: { scale: 1.03, y: -1 }, whileTap: { scale: 0.96 } };
+const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
 
 type PendingBooking =
   | { kind: 'FLIGHT'; item: Flight }
@@ -23,6 +27,15 @@ function ResultsSkeleton() {
         <div key={i} className="h-14 animate-pulse rounded-xl bg-ink-950/[0.05]" />
       ))}
     </div>
+  );
+}
+
+function EmptyState({ icon: Icon, text }: { icon: typeof SearchX; text: string }) {
+  return (
+    <li className="flex flex-col items-center gap-2 rounded-xl bg-ink-950/[0.03] px-4 py-8 text-center text-sm text-ink-800/60">
+      <Icon size={22} className="text-ink-950/25" />
+      {text}
+    </li>
   );
 }
 
@@ -120,8 +133,11 @@ export function SearchPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <h1 className="text-3xl font-medium text-ink-950">Find your next trip</h1>
 
-        <section className="mt-10 rounded-2xl border border-ink-950/10 bg-white/60 p-6">
-          <h2 className="text-xl font-medium text-ink-950">Flights</h2>
+        <section className="shadow-elevated mt-10 rounded-2xl border border-ink-950/10 bg-white/70 p-6">
+          <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
+            <PlaneTakeoff size={19} className="text-sunset-600" />
+            Flights
+          </h2>
           <form onSubmit={searchFlights} className="mt-4 flex flex-wrap items-end gap-3">
             <AirportAutocomplete label="Origin" value={origin} onChange={setOrigin} placeholder="City or airport" />
             <AirportAutocomplete
@@ -139,13 +155,15 @@ export function SearchPage() {
                 className={`${dateInputClass} w-44`}
               />
             </label>
-            <button
+            <motion.button
+              {...tap}
+              transition={spring}
               type="submit"
               disabled={searchingFlights}
-              className="rounded-lg bg-ink-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-ink-800 disabled:opacity-60"
+              className="rounded-lg bg-ink-950 px-5 py-2 text-sm font-medium text-white hover:bg-ink-800 disabled:opacity-60"
             >
               {searchingFlights ? 'Searching...' : 'Search'}
-            </button>
+            </motion.button>
           </form>
           <p className="mt-2 text-xs text-ink-800/50">
             Origin/destination suggestions come from a public airports directory - if your city
@@ -155,11 +173,12 @@ export function SearchPage() {
           {searchingFlights && <ResultsSkeleton />}
           {!searchingFlights && (
             <ul className="mt-5 flex flex-col gap-2">
-              {flights.map((flight) => (
+              {flights.map((flight, i) => (
                 <motion.li
                   key={flight.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
                   className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white px-4 py-3"
                 >
                   <span className="text-sm text-ink-900">
@@ -167,42 +186,48 @@ export function SearchPage() {
                     {new Date(flight.departureAt).toLocaleDateString()} &middot; {flight.priceAmount}{' '}
                     {flight.priceCurrency} &middot; {flight.availableSeats} seats left
                   </span>
-                  <button
+                  <motion.button
+                    {...tap}
+                    transition={spring}
                     onClick={() => setPending({ kind: 'FLIGHT', item: flight })}
-                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600"
+                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
                   >
                     Book
-                  </button>
+                  </motion.button>
                 </motion.li>
               ))}
               {flights.length === 0 && !flightsSearched && (
-                <li className="rounded-xl bg-ink-950/[0.03] px-4 py-3 text-center text-sm text-ink-800/60">
-                  Search above to see available flights.
-                </li>
+                <EmptyState icon={PlaneTakeoff} text="Search above to see available flights." />
               )}
               {flights.length === 0 && flightsSearched && (
-                <li className="rounded-xl bg-ink-950/[0.03] px-4 py-3 text-center text-sm text-ink-800/60">
-                  No flights found for that route{departureDate ? ' on that date' : ''}. Try a
-                  different {departureDate ? 'date, ' : ''}origin, or destination.
-                </li>
+                <EmptyState
+                  icon={SearchX}
+                  text={`No flights found for that route${departureDate ? ' on that date' : ''}. Try a different ${departureDate ? 'date, ' : ''}origin, or destination.`}
+                />
               )}
             </ul>
           )}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-ink-950/10 bg-white/60 p-6">
-          <h2 className="text-xl font-medium text-ink-950">Hotels</h2>
+        <section className="shadow-elevated mt-6 rounded-2xl border border-ink-950/10 bg-white/70 p-6">
+          <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
+            <BedDouble size={19} className="text-pine-600" />
+            Hotels
+          </h2>
           <form onSubmit={searchHotels} className="mt-4 flex flex-wrap items-end gap-3">
             <CityAutocomplete label="City" value={city} onChange={setCity} />
-            <button
+            <motion.button
+              {...tap}
+              transition={spring}
               type="submit"
               disabled={searchingHotels}
-              className="rounded-lg bg-ink-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-ink-800 disabled:opacity-60"
+              className="rounded-lg bg-ink-950 px-5 py-2 text-sm font-medium text-white hover:bg-ink-800 disabled:opacity-60"
             >
               {searchingHotels ? 'Searching...' : 'Search'}
-            </button>
+            </motion.button>
           </form>
-          <p className="mt-2 text-xs text-ink-800/50">
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-800/50">
+            <CalendarSearch size={13} />
             Date-based availability isn't modeled yet for hotels (no per-night inventory in this
             demo) - results show current room counts only.
           </p>
@@ -210,34 +235,33 @@ export function SearchPage() {
           {searchingHotels && <ResultsSkeleton />}
           {!searchingHotels && (
             <ul className="mt-5 flex flex-col gap-2">
-              {hotels.map((hotel) => (
+              {hotels.map((hotel, i) => (
                 <motion.li
                   key={hotel.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
                   className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white px-4 py-3"
                 >
                   <span className="text-sm text-ink-900">
                     {hotel.name} ({hotel.city}) &middot; {hotel.pricePerNightAmount}{' '}
                     {hotel.pricePerNightCurrency}/night &middot; {hotel.availableRooms} rooms left
                   </span>
-                  <button
+                  <motion.button
+                    {...tap}
+                    transition={spring}
                     onClick={() => setPending({ kind: 'HOTEL', item: hotel })}
-                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600"
+                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
                   >
                     Book
-                  </button>
+                  </motion.button>
                 </motion.li>
               ))}
               {hotels.length === 0 && !hotelsSearched && (
-                <li className="rounded-xl bg-ink-950/[0.03] px-4 py-3 text-center text-sm text-ink-800/60">
-                  Search above to see available hotels.
-                </li>
+                <EmptyState icon={BedDouble} text="Search above to see available hotels." />
               )}
               {hotels.length === 0 && hotelsSearched && (
-                <li className="rounded-xl bg-ink-950/[0.03] px-4 py-3 text-center text-sm text-ink-800/60">
-                  No hotels found in that city. Try a different city.
-                </li>
+                <EmptyState icon={SearchX} text="No hotels found in that city. Try a different city." />
               )}
             </ul>
           )}

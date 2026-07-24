@@ -1,6 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { CheckCircle2 } from 'lucide-react';
 import { SiteHeader } from '../components/SiteHeader';
+
+const tap = { whileHover: { scale: 1.03, y: -1 }, whileTap: { scale: 0.96 } };
+const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
 
 export function BookingConfirmationPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -10,19 +14,23 @@ export function BookingConfirmationPage() {
       <SiteHeader />
       <div className="mx-auto max-w-lg px-6 py-20 text-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pine-600/10 text-pine-600"
+          transition={{ type: 'spring', stiffness: 260, damping: 15 }}
+          className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pine-600/10 text-pine-600"
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <motion.span
+            initial={{ opacity: 0.5, scale: 1 }}
+            animate={{ opacity: 0, scale: 1.6 }}
+            transition={{ duration: 1, delay: 0.2, ease: 'easeOut' }}
+            className="absolute inset-0 rounded-full bg-pine-500/30"
+          />
+          <CheckCircle2 size={30} />
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
           className="mt-6 text-3xl font-medium text-ink-950"
         >
           Booking confirmed
@@ -30,7 +38,7 @@ export function BookingConfirmationPage() {
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
           className="mt-3 text-ink-800"
         >
           Thanks! Your booking (reference <code className="rounded bg-ink-950/5 px-1.5 py-0.5">{bookingId}</code>)
@@ -38,18 +46,22 @@ export function BookingConfirmationPage() {
           background - you don't need to do anything else.
         </motion.p>
         <div className="mt-8 flex justify-center gap-3">
-          <Link
-            to="/bookings"
-            className="inline-block rounded-full bg-sunset-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-sunset-600"
-          >
-            View my bookings
-          </Link>
-          <Link
-            to="/search"
-            className="inline-block rounded-full border border-ink-950/15 px-6 py-2.5 text-sm font-medium text-ink-900 transition hover:bg-ink-950/5"
-          >
-            Back to search
-          </Link>
+          <motion.div {...tap} transition={spring}>
+            <Link
+              to="/bookings"
+              className="inline-block rounded-full bg-sunset-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-sunset-600"
+            >
+              View my bookings
+            </Link>
+          </motion.div>
+          <motion.div {...tap} transition={spring}>
+            <Link
+              to="/search"
+              className="inline-block rounded-full border border-ink-950/15 px-6 py-2.5 text-sm font-medium text-ink-900 hover:bg-ink-950/5"
+            >
+              Back to search
+            </Link>
+          </motion.div>
         </div>
         <details className="mt-10 text-left text-sm text-ink-800/70">
           <summary className="cursor-pointer font-medium text-ink-800">Technical details</summary>

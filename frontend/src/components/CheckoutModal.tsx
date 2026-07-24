@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, CreditCard } from 'lucide-react';
+
+const tap = { whileHover: { scale: 1.02, y: -1 }, whileTap: { scale: 0.96 } };
+const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
 
 export interface CheckoutSummary {
   title: string;
@@ -59,9 +63,12 @@ export function CheckoutModal({ summary, submitting, onCancel, onConfirm }: Chec
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.25 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            className="shadow-popover w-full max-w-md rounded-2xl bg-white p-6"
           >
-            <h2 className="text-xl font-medium text-ink-950">Confirm & pay</h2>
+            <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
+              <CreditCard size={19} className="text-sunset-600" />
+              Confirm & pay
+            </h2>
             <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-950/[0.03] px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-ink-900">{summary.title}</p>
@@ -117,26 +124,31 @@ export function CheckoutModal({ summary, submitting, onCancel, onConfirm }: Chec
                 </label>
               </div>
 
-              <p className="mt-1 text-xs text-ink-800/50">
+              <p className="mt-1 flex items-start gap-1.5 text-xs text-ink-800/50">
+                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-pine-500" />
                 Test mode - this is a portfolio demo. No real card is charged and none of these
                 details are sent anywhere; any values work.
               </p>
 
               <div className="mt-3 flex gap-3">
-                <button
+                <motion.button
+                  {...tap}
+                  transition={spring}
                   type="button"
                   onClick={onCancel}
-                  className="flex-1 rounded-lg border border-ink-950/15 px-4 py-2.5 text-sm font-medium text-ink-900 transition hover:bg-ink-950/5"
+                  className="flex-1 rounded-lg border border-ink-950/15 px-4 py-2.5 text-sm font-medium text-ink-900 hover:bg-ink-950/5"
                 >
                   Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  {...tap}
+                  transition={spring}
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 rounded-lg bg-sunset-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex-1 rounded-lg bg-sunset-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? 'Processing...' : `Pay ${summary.amount} ${summary.currency}`}
-                </button>
+                </motion.button>
               </div>
             </form>
           </motion.div>

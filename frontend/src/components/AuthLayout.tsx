@@ -11,7 +11,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="rounded-2xl border border-ink-950/10 bg-white/80 p-8 shadow-lg shadow-ink-950/5"
+          className="shadow-elevated rounded-2xl border border-ink-950/10 bg-white/80 p-8"
         >
           <h1 className="text-2xl font-medium text-ink-950">{title}</h1>
           {children}

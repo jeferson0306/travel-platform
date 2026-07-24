@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { api, friendlyErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-ink-950/15 bg-white px-3 py-2 text-ink-950 outline-none transition focus:border-pine-500 focus:ring-2 focus:ring-pine-500/20';
+const tap = { whileHover: { scale: 1.02, y: -1 }, whileTap: { scale: 0.97 } };
+const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -61,13 +64,15 @@ export function LoginPage() {
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
+        <motion.button
+          {...tap}
+          transition={spring}
           type="submit"
           disabled={submitting}
-          className="mt-2 rounded-lg bg-sunset-500 px-4 py-2.5 font-medium text-white transition hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-2 rounded-lg bg-sunset-500 px-4 py-2.5 font-medium text-white hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? 'Logging in...' : 'Log in'}
-        </button>
+        </motion.button>
       </form>
       <p className="mt-6 text-sm text-ink-800">
         No account yet?{' '}
