@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { api, ApiError, type Booking } from '../api/client';
+import { api, friendlyErrorMessage, type Booking } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SiteHeader } from '../components/SiteHeader';
 
@@ -20,7 +20,7 @@ export function MyBookingsPage() {
     api
       .listBookings(userId, token)
       .then(setBookings)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load bookings'));
+      .catch((err) => setError(friendlyErrorMessage(err)));
   }, [token, userId]);
 
   return (

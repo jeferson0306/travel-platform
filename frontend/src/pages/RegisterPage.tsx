@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { api, ApiError } from '../api/client';
+import { api, friendlyErrorMessage } from '../api/client';
 import { AuthLayout } from '../components/AuthLayout';
 
 const inputClass =
@@ -22,7 +22,7 @@ export function RegisterPage() {
       await api.register({ fullName, email, password });
       navigate('/login', { state: { registered: true } });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Registration failed');
+      setError(friendlyErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { api, ApiError } from '../api/client';
+import { api, friendlyErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
 
@@ -26,7 +26,7 @@ export function LoginPage() {
       login(accessToken, email);
       navigate('/search');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Login failed');
+      setError(friendlyErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

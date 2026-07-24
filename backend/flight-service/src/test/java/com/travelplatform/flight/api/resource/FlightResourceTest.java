@@ -66,6 +66,53 @@ class FlightResourceTest {
     }
 
     @Test
+    void searchFiltersByDepartureDateWhenGiven() {
+        var origin = "LIS";
+        var destination = "MAD";
+        var matchingDeparture = Instant.parse("2027-03-10T09:00:00Z");
+        var otherDayDeparture = Instant.parse("2027-03-11T09:00:00Z");
+
+        given().header("Authorization", "Bearer " + tokenWithRole("MANAGER"))
+                .contentType("application/json")
+                .body(
+                        new CreateFlightRequest(
+                                origin,
+                                destination,
+                                matchingDeparture,
+                                matchingDeparture.plus(1, ChronoUnit.HOURS),
+                                new BigDecimal("100.00"),
+                                "EUR",
+                                10))
+                .post("/api/v1/flights")
+                .then()
+                .statusCode(201);
+        given().header("Authorization", "Bearer " + tokenWithRole("MANAGER"))
+                .contentType("application/json")
+                .body(
+                        new CreateFlightRequest(
+                                origin,
+                                destination,
+                                otherDayDeparture,
+                                otherDayDeparture.plus(1, ChronoUnit.HOURS),
+                                new BigDecimal("100.00"),
+                                "EUR",
+                                10))
+                .post("/api/v1/flights")
+                .then()
+                .statusCode(201);
+
+        given().queryParam("origin", origin)
+                .queryParam("destination", destination)
+                .queryParam("departureDate", "2027-03-10")
+                .when()
+                .get("/api/v1/flights")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].departureAt", equalTo("2027-03-10T09:00:00Z"));
+    }
+
+    @Test
     void createWithoutTokenIsRejected() {
         // No Authorization header at all is rejected by Quarkus's HTTP auth challenge before
         // the request ever reaches JAX-RS, so UnauthenticatedExceptionMapper's canonical body

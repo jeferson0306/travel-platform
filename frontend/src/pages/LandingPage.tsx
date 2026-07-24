@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SiteHeader } from '../components/SiteHeader';
-import { api, ApiError, type Flight } from '../api/client';
+import { api, friendlyErrorMessage, type Flight } from '../api/client';
 
 const FEATURED_DESTINATIONS = [
   { city: 'Lisbon', country: 'Portugal', blurb: 'Pastel facades, river light, tram bells.' },
@@ -31,7 +31,7 @@ export function LandingPage() {
       setFlights(await api.searchFlights(origin, destination));
       setSearched(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Search failed');
+      setError(friendlyErrorMessage(err));
     }
   };
 
