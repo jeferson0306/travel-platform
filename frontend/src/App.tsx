@@ -4,6 +4,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
 import { SearchPage } from './pages/SearchPage';
 import { BookingConfirmationPage } from './pages/BookingConfirmationPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export default function App() {
@@ -17,6 +18,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <SearchPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <MyBookingsPage />
           </ProtectedRoute>
         }
       />

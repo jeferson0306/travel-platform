@@ -134,6 +134,48 @@ class BookingResourceTest {
     }
 
     @Test
+    void listsOnlyTheGivenTravelersBookings() {
+        var travelerId = UUID.randomUUID().toString();
+        var otherTravelerId = UUID.randomUUID().toString();
+
+        given().contentType("application/json")
+                .body(
+                        new CreateBookingRequest(
+                                travelerId,
+                                "traveler@example.com",
+                                "FLIGHT",
+                                UUID.randomUUID().toString(),
+                                1,
+                                new BigDecimal("120.00"),
+                                "EUR"))
+                .post("/api/v1/bookings")
+                .then()
+                .statusCode(201);
+        given().contentType("application/json")
+                .body(
+                        new CreateBookingRequest(
+                                otherTravelerId,
+                                "someone-else@example.com",
+                                "HOTEL",
+                                UUID.randomUUID().toString(),
+                                1,
+                                new BigDecimal("80.00"),
+                                "EUR"))
+                .post("/api/v1/bookings")
+                .then()
+                .statusCode(201);
+
+        given().queryParam("travelerId", travelerId)
+                .when()
+                .get("/api/v1/bookings")
+                .then()
+                .statusCode(200)
+                .body("size()", org.hamcrest.Matchers.equalTo(1))
+                .body("[0].itemType", org.hamcrest.Matchers.equalTo("FLIGHT"))
+                .body("[0].status", org.hamcrest.Matchers.equalTo("PENDING"));
+    }
+
+    @Test
     void rejectsInvalidPayload() {
         given().contentType("application/json")
                 .body(

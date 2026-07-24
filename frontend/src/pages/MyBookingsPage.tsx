@@ -1,0 +1,81 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { api, ApiError, type Booking } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { SiteHeader } from '../components/SiteHeader';
+
+const STATUS_STYLES: Record<Booking['status'], string> = {
+  PENDING: 'bg-amber-100 text-amber-700',
+  CONFIRMED: 'bg-pine-600/10 text-pine-600',
+  CANCELLED: 'bg-red-100 text-red-600',
+};
+
+export function MyBookingsPage() {
+  const { token, userId } = useAuth();
+  const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !userId) return;
+    api
+      .listBookings(userId, token)
+      .then(setBookings)
+      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load bookings'));
+  }, [token, userId]);
+
+  return (
+    <div className="min-h-screen">
+      <SiteHeader />
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-3xl font-medium text-ink-950">My bookings</h1>
+
+        {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
+
+        {bookings === null && !error && (
+          <p className="mt-6 text-sm text-ink-800/60">Loading...</p>
+        )}
+
+        {bookings !== null && bookings.length === 0 && (
+          <p className="mt-6 rounded-xl bg-ink-950/[0.03] px-4 py-3 text-sm text-ink-800/60">
+            No bookings yet -{' '}
+            <a href="/search" className="text-pine-600 underline underline-offset-2">
+              search flights or hotels
+            </a>{' '}
+            to make your first one.
+          </p>
+        )}
+
+        <ul className="mt-6 flex flex-col gap-3">
+          {bookings?.map((booking) => (
+            <motion.li
+              key={booking.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white/80 px-5 py-4"
+            >
+              <div>
+                <p className="text-sm font-medium text-ink-900">
+                  {booking.itemType === 'FLIGHT' ? 'Flight' : 'Hotel'} booking
+                </p>
+                <p className="text-xs text-ink-800/50">
+                  {new Date(booking.createdAt).toLocaleDateString()} &middot; ref{' '}
+                  <code>{booking.id.slice(0, 8)}</code>
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-display text-lg text-ink-950">
+                  {booking.amount} {booking.currency}
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLES[booking.status]}`}
+                >
+                  {booking.status}
+                </span>
+              </div>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}

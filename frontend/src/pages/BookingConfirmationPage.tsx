@@ -37,12 +37,20 @@ export function BookingConfirmationPage() {
           was received. Payment processing and a confirmation email happen automatically in the
           background - you don't need to do anything else.
         </motion.p>
-        <Link
-          to="/search"
-          className="mt-8 inline-block rounded-full bg-sunset-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-sunset-600"
-        >
-          Back to search
-        </Link>
+        <div className="mt-8 flex justify-center gap-3">
+          <Link
+            to="/bookings"
+            className="inline-block rounded-full bg-sunset-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-sunset-600"
+          >
+            View my bookings
+          </Link>
+          <Link
+            to="/search"
+            className="inline-block rounded-full border border-ink-950/15 px-6 py-2.5 text-sm font-medium text-ink-900 transition hover:bg-ink-950/5"
+          >
+            Back to search
+          </Link>
+        </div>
         <details className="mt-10 text-left text-sm text-ink-800/70">
           <summary className="cursor-pointer font-medium text-ink-800">Technical details</summary>
           <p className="mt-2">
@@ -55,8 +63,8 @@ export function BookingConfirmationPage() {
             >
               ADR 0010
             </a>
-            . This demo has no booking-status endpoint yet (a documented platform gap), so there
-            is nothing to poll here.
+            . There is no single-booking status endpoint (a documented platform gap) - check
+            "My bookings" for the current status instead of polling this page.
           </p>
         </details>
       </div>

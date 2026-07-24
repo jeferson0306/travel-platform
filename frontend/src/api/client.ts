@@ -90,6 +90,17 @@ export interface CreateBookingResponse {
   bookingId: string;
 }
 
+export interface Booking {
+  id: string;
+  itemType: 'FLIGHT' | 'HOTEL';
+  itemId: string;
+  quantity: number;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  createdAt: string;
+}
+
 export const api = {
   register: (body: RegisterRequest) => request<RegisterResponse>('/api/v1/auth/register', { method: 'POST', body }),
   login: (body: LoginRequest) => request<LoginResponse>('/api/v1/auth/login', { method: 'POST', body }),
@@ -98,4 +109,6 @@ export const api = {
   searchHotels: (city: string) => request<Hotel[]>(`/api/v1/hotels?city=${encodeURIComponent(city)}`),
   createBooking: (body: CreateBookingRequest, token: string) =>
     request<CreateBookingResponse>('/api/v1/bookings', { method: 'POST', body, token }),
+  listBookings: (travelerId: string, token: string) =>
+    request<Booking[]>(`/api/v1/bookings?travelerId=${encodeURIComponent(travelerId)}`, { token }),
 };
