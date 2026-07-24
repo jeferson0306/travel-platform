@@ -9,6 +9,8 @@ export function SearchPage() {
   const [city, setCity] = useState('Lisbon');
   const [flights, setFlights] = useState<Flight[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [flightsSearched, setFlightsSearched] = useState(false);
+  const [hotelsSearched, setHotelsSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [booking, setBooking] = useState<string | null>(null);
   const { token, userId, email, logout } = useAuth();
@@ -19,6 +21,7 @@ export function SearchPage() {
     setError(null);
     try {
       setFlights(await api.searchFlights(origin, destination));
+      setFlightsSearched(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Search failed');
     }
@@ -29,6 +32,7 @@ export function SearchPage() {
     setError(null);
     try {
       setHotels(await api.searchHotels(city));
+      setHotelsSearched(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Search failed');
     }
@@ -120,7 +124,12 @@ export function SearchPage() {
               </button>
             </li>
           ))}
-          {flights.length === 0 && <li className="empty">No results yet - search above.</li>}
+          {flights.length === 0 && !flightsSearched && (
+            <li className="empty">Search above to see available flights.</li>
+          )}
+          {flights.length === 0 && flightsSearched && (
+            <li className="empty">No flights found for that route. Try a different origin/destination.</li>
+          )}
         </ul>
       </section>
 
@@ -142,7 +151,12 @@ export function SearchPage() {
               </button>
             </li>
           ))}
-          {hotels.length === 0 && <li className="empty">No results yet - search above.</li>}
+          {hotels.length === 0 && !hotelsSearched && (
+            <li className="empty">Search above to see available hotels.</li>
+          )}
+          {hotels.length === 0 && hotelsSearched && (
+            <li className="empty">No hotels found in that city. Try a different city.</li>
+          )}
         </ul>
       </section>
     </div>
