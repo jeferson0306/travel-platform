@@ -46,13 +46,13 @@ fi
 create_flight() {
   curl -s -X POST "$GATEWAY_URL/api/v1/flights" \
     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-    -d "$1" | jq -c '{origin, destination, priceAmount}'
+    -d "$1" | jq -c '. + {ok: (.flightId != null)}'
 }
 
 create_hotel() {
   curl -s -X POST "$GATEWAY_URL/api/v1/hotels" \
     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-    -d "$1" | jq -c '{name, city, pricePerNightAmount}'
+    -d "$1" | jq -c '. + {ok: (.hotelId != null)}'
 }
 
 echo "==> Creating flights"

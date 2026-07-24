@@ -4,9 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api, ApiError, type Flight, type Hotel } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SiteHeader } from '../components/SiteHeader';
+import { CheckoutModal, type CheckoutSummary } from '../components/CheckoutModal';
 
 const inputClass =
   'w-full rounded-lg border border-ink-950/15 bg-white px-3 py-2 text-ink-950 outline-none transition focus:border-pine-500 focus:ring-2 focus:ring-pine-500/20';
+
+type PendingBooking =
+  | { kind: 'FLIGHT'; item: Flight }
+  | { kind: 'HOTEL'; item: Hotel };
 
 export function SearchPage() {
   const [origin, setOrigin] = useState('LIS');
@@ -17,7 +22,8 @@ export function SearchPage() {
   const [flightsSearched, setFlightsSearched] = useState(false);
   const [hotelsSearched, setHotelsSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [booking, setBooking] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingBooking | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { token, userId, email } = useAuth();
   const navigate = useNavigate();
 
@@ -43,55 +49,51 @@ export function SearchPage() {
     }
   };
 
-  const bookFlight = async (flight: Flight) => {
-    if (!token || !userId || !email) return;
+  const confirmBooking = async () => {
+    if (!pending || !token || !userId || !email) return;
     setError(null);
-    setBooking(flight.id);
+    setSubmitting(true);
     try {
+      // A short pause makes the "processing" state read as real rather than instant - the
+      // booking itself still triggers the real choreography saga once submitted.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const isFlight = pending.kind === 'FLIGHT';
       const { bookingId } = await api.createBooking(
         {
           travelerId: userId,
           travelerEmail: email,
-          itemType: 'FLIGHT',
-          itemId: flight.id,
+          itemType: pending.kind,
+          itemId: pending.item.id,
           quantity: 1,
-          amount: flight.priceAmount,
-          currency: flight.priceCurrency,
+          amount: isFlight ? pending.item.priceAmount : pending.item.pricePerNightAmount,
+          currency: isFlight ? pending.item.priceCurrency : pending.item.pricePerNightCurrency,
         },
         token,
       );
+      setPending(null);
       navigate(`/booking/${bookingId}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Booking failed');
     } finally {
-      setBooking(null);
+      setSubmitting(false);
     }
   };
 
-  const bookHotel = async (hotel: Hotel) => {
-    if (!token || !userId || !email) return;
-    setError(null);
-    setBooking(hotel.id);
-    try {
-      const { bookingId } = await api.createBooking(
-        {
-          travelerId: userId,
-          travelerEmail: email,
-          itemType: 'HOTEL',
-          itemId: hotel.id,
-          quantity: 1,
-          amount: hotel.pricePerNightAmount,
-          currency: hotel.pricePerNightCurrency,
-        },
-        token,
-      );
-      navigate(`/booking/${bookingId}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Booking failed');
-    } finally {
-      setBooking(null);
-    }
-  };
+  const checkoutSummary: CheckoutSummary | null = pending
+    ? pending.kind === 'FLIGHT'
+      ? {
+          title: `${pending.item.origin} → ${pending.item.destination}`,
+          subtitle: 'Flight',
+          amount: pending.item.priceAmount,
+          currency: pending.item.priceCurrency,
+        }
+      : {
+          title: pending.item.name,
+          subtitle: `${pending.item.city} · 1 night`,
+          amount: pending.item.pricePerNightAmount,
+          currency: pending.item.pricePerNightCurrency,
+        }
+    : null;
 
   return (
     <div className="min-h-screen">
@@ -155,11 +157,10 @@ export function SearchPage() {
                   {flight.priceCurrency} &middot; {flight.availableSeats} seats left
                 </span>
                 <button
-                  onClick={() => bookFlight(flight)}
-                  disabled={booking === flight.id}
-                  className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => setPending({ kind: 'FLIGHT', item: flight })}
+                  className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600"
                 >
-                  {booking === flight.id ? 'Booking...' : 'Book'}
+                  Book
                 </button>
               </motion.li>
             ))}
@@ -209,11 +210,10 @@ export function SearchPage() {
                   {hotel.pricePerNightCurrency}/night &middot; {hotel.availableRooms} rooms left
                 </span>
                 <button
-                  onClick={() => bookHotel(hotel)}
-                  disabled={booking === hotel.id}
-                  className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => setPending({ kind: 'HOTEL', item: hotel })}
+                  className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sunset-600"
                 >
-                  {booking === hotel.id ? 'Booking...' : 'Book'}
+                  Book
                 </button>
               </motion.li>
             ))}
@@ -230,6 +230,13 @@ export function SearchPage() {
           </ul>
         </section>
       </div>
+
+      <CheckoutModal
+        summary={checkoutSummary}
+        submitting={submitting}
+        onCancel={() => setPending(null)}
+        onConfirm={confirmBooking}
+      />
     </div>
   );
 }
