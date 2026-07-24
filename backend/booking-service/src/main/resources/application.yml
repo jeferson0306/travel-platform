@@ -35,6 +35,11 @@ booking:
       # docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md.
 
 mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
   messaging:
     incoming:
       payment-authorized:

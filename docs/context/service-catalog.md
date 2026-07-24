@@ -29,10 +29,14 @@ Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
 
 - **Owns**: bookings (`PENDING` → `CONFIRMED` | `CANCELLED`), the saga's
   central aggregate.
-- **API**: `POST /api/v1/bookings` (flat body: travelerId, travelerEmail,
-  itemType FLIGHT|HOTEL, itemId, quantity, amount, currency),
-  `POST /api/v1/bookings/{id}/cancel`. No GET endpoint. No service-level
-  auth - traveler fields are trusted client input (documented gap).
+- **API**: `POST /api/v1/bookings` (flat body: travelerEmail, itemType
+  FLIGHT|HOTEL, itemId, quantity, amount, currency), `GET
+/api/v1/bookings` (caller's own bookings), `POST
+/api/v1/bookings/{id}/cancel`. Every endpoint requires a valid JWT
+  (`@Authenticated`); travelerId is always the JWT subject, never client
+  input - a caller can only create/list/cancel their own bookings.
+  amount/currency/travelerEmail remain trusted client input (a separate,
+  still-open gap - no authoritative pricing/identity lookup yet).
 - **Publishes**: `booking-created`, `booking-cancelled`,
   `booking-confirmed` - all via the transactional outbox (ADR 0007).
 - **Consumes**: `payment-authorized` / `payment-failed` (group

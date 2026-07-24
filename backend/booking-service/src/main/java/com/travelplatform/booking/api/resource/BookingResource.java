@@ -9,6 +9,7 @@ import com.travelplatform.booking.application.port.in.CreateBookingUseCase;
 import com.travelplatform.booking.application.port.in.CreateBookingUseCase.CreateBookingCommand;
 import com.travelplatform.booking.application.port.in.ListBookingsUseCase;
 import com.travelplatform.booking.application.port.in.ListBookingsUseCase.ListBookingsQuery;
+import io.quarkus.security.Authenticated;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -16,39 +17,42 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 /**
- * travelerId is trusted client input for now, both for creating a booking and for listing a
- * traveler's own bookings below - there is no Gateway/JWT enforcement in front of this service yet
- * (the Gateway landed in ROADMAP M14 but only does signature/expiry fast-fail, not per-backend
- * authorization - see ARCHITECTURE.md's "defense in depth" note). A caller who knows another
- * traveler's id can currently list their bookings; verifying travelerId against the JWT subject
- * here is the fix, tracked as a known gap rather than silently left undocumented.
+ * Every endpoint requires a valid JWT (verified against identity-service's public key - same RS256
+ * setup as flight-service/hotel-service). travelerId is derived exclusively from the JWT subject,
+ * never from client input - a caller can only create, list, or cancel their own bookings.
+ * amount/currency/travelerEmail remain trusted client input (see CreateBookingRequest) - that's a
+ * separate, still-open gap around authoritative pricing, not part of this fix.
  */
 @Path("/api/v1/bookings")
 @Produces(MediaType.APPLICATION_JSON)
+@Authenticated
 public class BookingResource {
 
     private final CreateBookingUseCase createBookingUseCase;
     private final CancelBookingUseCase cancelBookingUseCase;
     private final ListBookingsUseCase listBookingsUseCase;
+    private final JsonWebToken jwt;
 
     public BookingResource(
             CreateBookingUseCase createBookingUseCase,
             CancelBookingUseCase cancelBookingUseCase,
-            ListBookingsUseCase listBookingsUseCase) {
+            ListBookingsUseCase listBookingsUseCase,
+            JsonWebToken jwt) {
         this.createBookingUseCase = createBookingUseCase;
         this.cancelBookingUseCase = cancelBookingUseCase;
         this.listBookingsUseCase = listBookingsUseCase;
+        this.jwt = jwt;
     }
 
     @GET
-    public List<BookingResponse> listByTraveler(@QueryParam("travelerId") String travelerId) {
-        return listBookingsUseCase.list(new ListBookingsQuery(travelerId)).stream()
+    public List<BookingResponse> listByTraveler() {
+        return listBookingsUseCase.list(new ListBookingsQuery(jwt.getSubject())).stream()
                 .map(BookingResponse::from)
                 .toList();
     }
@@ -59,7 +63,7 @@ public class BookingResource {
         var id =
                 createBookingUseCase.create(
                         new CreateBookingCommand(
-                                request.travelerId(),
+                                jwt.getSubject(),
                                 request.travelerEmail(),
                                 request.itemType(),
                                 request.itemId(),
@@ -74,7 +78,7 @@ public class BookingResource {
     @POST
     @Path("/{id}/cancel")
     public Response cancel(@PathParam("id") String id) {
-        cancelBookingUseCase.cancel(new CancelBookingCommand(id));
+        cancelBookingUseCase.cancel(new CancelBookingCommand(id, jwt.getSubject()));
         return Response.noContent().build();
     }
 }

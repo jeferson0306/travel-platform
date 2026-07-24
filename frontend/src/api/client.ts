@@ -109,7 +109,6 @@ export interface Hotel {
 }
 
 export interface CreateBookingRequest {
-  travelerId: string;
   travelerEmail: string;
   itemType: 'FLIGHT' | 'HOTEL';
   itemId: string;
@@ -144,6 +143,5 @@ export const api = {
   searchHotels: (city: string) => request<Hotel[]>(`/api/v1/hotels?city=${encodeURIComponent(city)}`),
   createBooking: (body: CreateBookingRequest, token: string) =>
     request<CreateBookingResponse>('/api/v1/bookings', { method: 'POST', body, token }),
-  listBookings: (travelerId: string, token: string) =>
-    request<Booking[]>(`/api/v1/bookings?travelerId=${encodeURIComponent(travelerId)}`, { token }),
+  listBookings: (token: string) => request<Booking[]>('/api/v1/bookings', { token }),
 };

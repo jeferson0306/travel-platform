@@ -16,17 +16,17 @@ function SkeletonRow() {
 }
 
 export function MyBookingsPage() {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !userId) return;
+    if (!token) return;
     api
-      .listBookings(userId, token)
+      .listBookings(token)
       .then(setBookings)
       .catch((err) => setError(friendlyErrorMessage(err)));
-  }, [token, userId]);
+  }, [token]);
 
   return (
     <div className="min-h-screen">

@@ -9,18 +9,13 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
 /**
- * travelerId/amount/currency/travelerEmail are trusted client input for now (see BookingResource) -
- * booking-service does not yet look up the authoritative price from flight-service/hotel-service or
- * the traveler's email from identity-service synchronously. Revisit once the Gateway (ROADMAP M14)
- * or a pricing/identity lookup lands.
+ * travelerId is no longer client input - BookingResource derives it from the verified JWT subject.
+ * amount/currency/travelerEmail are still trusted client input for now - booking-service does not
+ * yet look up the authoritative price from flight-service/hotel-service or the traveler's email
+ * from identity-service synchronously. That remains a known gap (see BookingResource), tracked
+ * separately from the travelerId fix.
  */
 public record CreateBookingRequest(
-        @NotBlank
-                @Pattern(
-                        regexp =
-                                "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-                        message = "must be a well-formed UUID")
-                String travelerId,
         @NotBlank @Email String travelerEmail,
         @NotBlank @Pattern(regexp = "^(FLIGHT|HOTEL)$", message = "must be FLIGHT or HOTEL")
                 String itemType,

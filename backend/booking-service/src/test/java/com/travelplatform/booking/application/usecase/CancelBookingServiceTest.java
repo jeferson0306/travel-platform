@@ -14,6 +14,7 @@ import com.travelplatform.booking.domain.booking.Email;
 import com.travelplatform.booking.domain.booking.ItemType;
 import com.travelplatform.booking.domain.booking.Money;
 import com.travelplatform.booking.domain.booking.TravelerId;
+import io.quarkus.security.ForbiddenException;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,17 +39,20 @@ class CancelBookingServiceTest {
     }
 
     @Test
-    @DisplayName("cancels an existing booking")
+    @DisplayName("cancels an existing booking when the caller owns it")
     void cancelsAnExistingBooking() {
+        var travelerId = new TravelerId(UUID.randomUUID());
         var booking =
                 Booking.create(
-                        new TravelerId(UUID.randomUUID()),
+                        travelerId,
                         new Email("traveler@example.com"),
                         new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
                         new Money(new BigDecimal("95.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 
-        service.cancel(new CancelBookingCommand(booking.id().value().toString()));
+        service.cancel(
+                new CancelBookingCommand(
+                        booking.id().value().toString(), travelerId.value().toString()));
 
         verify(bookingRepository).save(booking);
     }
@@ -59,7 +63,31 @@ class CancelBookingServiceTest {
         var id = UUID.randomUUID().toString();
         when(bookingRepository.findById(BookingId.of(id))).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.cancel(new CancelBookingCommand(id)))
+        assertThatThrownBy(
+                        () ->
+                                service.cancel(
+                                        new CancelBookingCommand(id, UUID.randomUUID().toString())))
                 .isInstanceOf(BookingNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("rejects cancelling a booking the caller does not own")
+    void rejectsCancellingSomeoneElsesBooking() {
+        var booking =
+                Booking.create(
+                        new TravelerId(UUID.randomUUID()),
+                        new Email("traveler@example.com"),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new Money(new BigDecimal("95.00"), "EUR"));
+        when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
+
+        var intruderId = UUID.randomUUID().toString();
+
+        assertThatThrownBy(
+                        () ->
+                                service.cancel(
+                                        new CancelBookingCommand(
+                                                booking.id().value().toString(), intruderId)))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

@@ -34,9 +34,11 @@ Ollama (local LLM runtime backing assistant-service, ADR 0018).
 ## HTTP API surface (all through `gateway` at `/api/v1/...`)
 
 - `POST /api/v1/auth/register`, `POST /api/v1/auth/login` - public.
-- `POST /api/v1/bookings`, `POST /api/v1/bookings/{id}/cancel` - no
-  service-level auth; `travelerId`/`travelerEmail`/`amount` are trusted
-  client input (documented gap, see BookingResource's own javadoc).
+- `POST /api/v1/bookings`, `GET /api/v1/bookings`, `POST
+/api/v1/bookings/{id}/cancel` - require a valid JWT; `travelerId` is
+  always the JWT subject, never client input. `travelerEmail`/`amount`
+  are still trusted client input (a separate, still-open gap, see
+  BookingResource's own javadoc).
 - `POST /api/v1/flights` (MANAGER/ADMIN/SUPER_ADMIN), `GET /api/v1/flights?origin&destination` - public.
 - `POST /api/v1/hotels` (MANAGER/ADMIN/SUPER_ADMIN), `GET /api/v1/hotels` - public.
 - `GET /api/v1/payments/{bookingId}` (SUPPORT/ADMIN/SUPER_ADMIN).

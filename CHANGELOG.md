@@ -255,3 +255,35 @@ and this project uses milestone-based versioning as defined in
   Railway's builder has no separate build step) supports it. MongoDB
   Atlas free tier used for the deployed database. Deployment itself is
   in progress as of this entry - see ROADMAP M20 and ADR 0019 for status.
+- Post-M20 polish: the demo-companion `frontend/` rebranded as
+  "Aerostay" with a Tailwind design system, a public marketing landing
+  page (live search widget hitting the real API), GSAP scroll
+  animations, Lucide icons, real button physicality (spring
+  hover/tap), a test-payment checkout modal, flight departure-date
+  filtering (new backend query param, `flight-service`), an
+  airport/city autocomplete (backed by a free public airports API for
+  flights, a curated known-city list for hotels since hotel search
+  needs an exact match against our own inventory), toast-based
+  human-readable error messages, and a booking-history page (new `GET
+/api/v1/bookings` endpoint). A minimal Vitest + Testing Library setup
+  was added for the frontend (previously zero test coverage) covering
+  the error-message logic and the two autocomplete components.
+
+### Security
+
+- `booking-service` previously trusted a client-supplied `travelerId`
+  on every endpoint (documented as a known gap since M8/ADR 0007) - any
+  caller who knew or guessed another traveler's id could list their
+  bookings, create a booking "as" them, or cancel any booking outright
+  (the cancel endpoint had no ownership check at all). Fixed:
+  `booking-service` now verifies a JWT on every endpoint
+  (`@Authenticated`, RS256 against identity-service's public key - the
+  same setup `flight-service`/`hotel-service` have had since M9) and
+  derives `travelerId` exclusively from the JWT subject; the
+  create/list/cancel endpoints no longer accept it as input at all. The
+  saga's own internal compensating cancel (payment-failed,
+  `PaymentFailedConsumer`/`RetryRelay`) is exempted from the ownership
+  check by design - it's system-initiated, not a user request, and has
+  no caller identity to check. `amount`/`currency`/`travelerEmail`
+  remain trusted client input, a separate, still-open gap (no
+  authoritative pricing/identity lookup yet) not addressed by this fix.

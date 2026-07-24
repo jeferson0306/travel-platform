@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.travelplatform.booking.api.dto.CreateBookingRequest;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.jwt.build.Jwt;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
@@ -48,10 +49,14 @@ class RetryRelayTest {
     }
 
     private String createBooking() {
-        return given().contentType("application/json")
+        var token =
+                Jwt.issuer("travel-platform-identity")
+                        .subject(UUID.randomUUID().toString())
+                        .sign("privateKey.pem");
+        return given().header("Authorization", "Bearer " + token)
+                .contentType("application/json")
                 .body(
                         new CreateBookingRequest(
-                                UUID.randomUUID().toString(),
                                 "traveler@example.com",
                                 "FLIGHT",
                                 UUID.randomUUID().toString(),

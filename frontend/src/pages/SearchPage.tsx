@@ -52,7 +52,7 @@ export function SearchPage() {
   const [searchingHotels, setSearchingHotels] = useState(false);
   const [pending, setPending] = useState<PendingBooking | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { token, userId, email } = useAuth();
+  const { token, email } = useAuth();
   const navigate = useNavigate();
 
   const searchFlights = async (event: FormEvent) => {
@@ -82,7 +82,7 @@ export function SearchPage() {
   };
 
   const confirmBooking = async () => {
-    if (!pending || !token || !userId || !email) return;
+    if (!pending || !token || !email) return;
     setSubmitting(true);
     try {
       // A short pause makes the "processing" state read as real rather than instant - the
@@ -91,7 +91,6 @@ export function SearchPage() {
       const isFlight = pending.kind === 'FLIGHT';
       const { bookingId } = await api.createBooking(
         {
-          travelerId: userId,
           travelerEmail: email,
           itemType: pending.kind,
           itemId: pending.item.id,
