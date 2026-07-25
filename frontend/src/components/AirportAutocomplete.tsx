@@ -73,7 +73,7 @@ export function AirportAutocomplete({ label, value, onChange, placeholder }: Air
         <input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value.toUpperCase());
+            setQuery(e.target.value);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
