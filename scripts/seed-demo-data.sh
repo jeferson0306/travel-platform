@@ -56,18 +56,19 @@ create_hotel() {
 }
 
 echo "==> Creating flights"
-create_flight '{"origin":"LIS","destination":"GRU","departureAt":"2026-09-10T09:00:00Z","arrivalAt":"2026-09-10T19:30:00Z","priceAmount":589.00,"priceCurrency":"EUR","availableSeats":120}'
-create_flight '{"origin":"LIS","destination":"JFK","departureAt":"2026-09-15T22:00:00Z","arrivalAt":"2026-09-16T06:15:00Z","priceAmount":432.50,"priceCurrency":"EUR","availableSeats":80}'
-create_flight '{"origin":"OPO","destination":"LHR","departureAt":"2026-09-05T07:20:00Z","arrivalAt":"2026-09-05T09:10:00Z","priceAmount":128.00,"priceCurrency":"EUR","availableSeats":150}'
-create_flight '{"origin":"LIS","destination":"CDG","departureAt":"2026-09-08T14:00:00Z","arrivalAt":"2026-09-08T17:20:00Z","priceAmount":165.90,"priceCurrency":"EUR","availableSeats":95}'
-create_flight '{"origin":"LIS","destination":"MAD","departureAt":"2026-09-12T11:00:00Z","arrivalAt":"2026-09-12T12:40:00Z","priceAmount":89.90,"priceCurrency":"EUR","availableSeats":60}'
+create_flight '{"origin":"LIS","destination":"GRU","departureAt":"2026-09-10T09:00:00Z","arrivalAt":"2026-09-10T19:30:00Z","priceAmount":589.00,"priceCurrency":"EUR","availableSeats":120,"airline":"TAP Air Portugal","airlineCode":"TP","flightNumber":"TP123","cabinClass":"ECONOMY","stops":0}'
+create_flight '{"origin":"LIS","destination":"JFK","departureAt":"2026-09-15T22:00:00Z","arrivalAt":"2026-09-16T06:15:00Z","priceAmount":432.50,"priceCurrency":"EUR","availableSeats":80,"airline":"Delta Air Lines","airlineCode":"DL","flightNumber":"DL245","cabinClass":"ECONOMY","stops":0}'
+create_flight '{"origin":"OPO","destination":"LHR","departureAt":"2026-09-05T07:20:00Z","arrivalAt":"2026-09-05T09:10:00Z","priceAmount":128.00,"priceCurrency":"EUR","availableSeats":150,"airline":"TAP Air Portugal","airlineCode":"TP","flightNumber":"TP1361","cabinClass":"ECONOMY","stops":0}'
+create_flight '{"origin":"LIS","destination":"CDG","departureAt":"2026-09-08T14:00:00Z","arrivalAt":"2026-09-08T17:20:00Z","priceAmount":165.90,"priceCurrency":"EUR","availableSeats":95,"airline":"Air France","airlineCode":"AF","flightNumber":"AF1682","cabinClass":"PREMIUM_ECONOMY","stops":0}'
+create_flight '{"origin":"LIS","destination":"MAD","departureAt":"2026-09-12T11:00:00Z","arrivalAt":"2026-09-12T12:40:00Z","priceAmount":89.90,"priceCurrency":"EUR","availableSeats":60,"airline":"Iberia","airlineCode":"IB","flightNumber":"IB3172","cabinClass":"ECONOMY","stops":0}'
+create_flight '{"origin":"LIS","destination":"GRU","departureAt":"2026-09-18T20:30:00Z","arrivalAt":"2026-09-19T09:15:00Z","priceAmount":1240.00,"priceCurrency":"EUR","availableSeats":24,"airline":"LATAM Airlines","airlineCode":"LA","flightNumber":"LA8181","cabinClass":"BUSINESS","stops":1}'
 
 echo "==> Creating hotels"
-create_hotel '{"name":"Lisbon Riverside Hotel","city":"Lisbon","pricePerNightAmount":142.00,"pricePerNightCurrency":"EUR","availableRooms":18}'
-create_hotel '{"name":"Porto Old Town Inn","city":"Porto","pricePerNightAmount":98.50,"pricePerNightCurrency":"EUR","availableRooms":12}'
-create_hotel '{"name":"Sao Paulo Business Suites","city":"Sao Paulo","pricePerNightAmount":210.00,"pricePerNightCurrency":"EUR","availableRooms":30}'
-create_hotel '{"name":"New York Midtown Hotel","city":"New York","pricePerNightAmount":315.00,"pricePerNightCurrency":"EUR","availableRooms":22}'
-create_hotel '{"name":"Madrid Central Boutique Hotel","city":"Madrid","pricePerNightAmount":124.00,"pricePerNightCurrency":"EUR","availableRooms":15}'
+create_hotel '{"name":"Lisbon Riverside Hotel","city":"Lisbon","pricePerNightAmount":142.00,"pricePerNightCurrency":"EUR","availableRooms":18,"address":"Avenida Ribeira das Naus 10","starRating":4,"amenities":["Free WiFi","Breakfast included","River view","Air conditioning"],"description":"A riverside stay in the heart of Lisbon, steps from the tram lines and pastel-facade streets.","reviewScore":8.7,"reviewCount":642}'
+create_hotel '{"name":"Porto Old Town Inn","city":"Porto","pricePerNightAmount":98.50,"pricePerNightCurrency":"EUR","availableRooms":12,"address":"Rua das Flores 88","starRating":3,"amenities":["Free WiFi","Breakfast included"],"description":"A cosy inn tucked into Porto old town, close to the port wine cellars.","reviewScore":8.2,"reviewCount":301}'
+create_hotel '{"name":"Sao Paulo Business Suites","city":"Sao Paulo","pricePerNightAmount":210.00,"pricePerNightCurrency":"EUR","availableRooms":30,"address":"Avenida Paulista 1500","starRating":5,"amenities":["Free WiFi","Pool","Gym","Business center","Airport shuttle"],"description":"Modern suites on Avenida Paulista, built for business travelers who still want a pool.","reviewScore":9.1,"reviewCount":1204}'
+create_hotel '{"name":"New York Midtown Hotel","city":"New York","pricePerNightAmount":315.00,"pricePerNightCurrency":"EUR","availableRooms":22,"address":"7th Avenue 250","starRating":4,"amenities":["Free WiFi","Gym","Rooftop bar"],"description":"Midtown Manhattan, a short walk from Times Square and the theater district.","reviewScore":8.5,"reviewCount":978}'
+create_hotel '{"name":"Madrid Central Boutique Hotel","city":"Madrid","pricePerNightAmount":124.00,"pricePerNightCurrency":"EUR","availableRooms":15,"address":"Calle Gran Via 45","starRating":4,"amenities":["Free WiFi","Breakfast included","Bar"],"description":"A boutique stay on Gran Via, close to the Prado and late-night tapas.","reviewScore":8.9,"reviewCount":517}'
 
 echo "==> Done. Search e.g. LIS -> GRU or city 'Lisbon' in the frontend to see results."
 echo "    (search-service indexes asynchronously via Kafka - if a listing doesn't show up"

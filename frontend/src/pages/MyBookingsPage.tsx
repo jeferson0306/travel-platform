@@ -73,7 +73,7 @@ export function MyBookingsPage() {
                   </span>
                   <div>
                     <p className="text-sm font-medium text-ink-900">
-                      {booking.itemType === 'FLIGHT' ? 'Flight' : 'Hotel'} booking
+                      {booking.itemSummary ?? `${booking.itemType === 'FLIGHT' ? 'Flight' : 'Hotel'} booking`}
                     </p>
                     <p className="text-xs text-ink-800/50">
                       {new Date(booking.createdAt).toLocaleDateString()} &middot; ref{' '}

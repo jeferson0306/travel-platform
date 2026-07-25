@@ -8,6 +8,7 @@ import com.travelplatform.hotel.application.port.in.CreateHotelUseCase.CreateHot
 import com.travelplatform.hotel.application.port.out.HotelRepository;
 import com.travelplatform.hotel.domain.hotel.Hotel;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,17 @@ class CreateHotelServiceTest {
         var id =
                 service.create(
                         new CreateHotelCommand(
-                                "Lisbon Central", "Lisbon", new BigDecimal("120.00"), "EUR", 20));
+                                "Lisbon Central",
+                                "Lisbon",
+                                new BigDecimal("120.00"),
+                                "EUR",
+                                20,
+                                "Rua Augusta 100",
+                                4,
+                                List.of("Free WiFi", "Pool"),
+                                "A central hotel in Lisbon.",
+                                4.3,
+                                128));
 
         assertThat(id).isNotNull();
         verify(hotelRepository).save(any(Hotel.class));

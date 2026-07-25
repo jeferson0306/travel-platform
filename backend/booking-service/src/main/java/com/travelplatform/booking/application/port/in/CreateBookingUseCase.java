@@ -14,5 +14,6 @@ public interface CreateBookingUseCase {
             String itemId,
             int quantity,
             BigDecimal amount,
-            String currency) {}
+            String currency,
+            String itemSummary) {}
 }

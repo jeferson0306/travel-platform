@@ -12,6 +12,11 @@ public record FlightCreated(
         Instant arrivalAt,
         Money price,
         int availableSeats,
+        String airline,
+        String airlineCode,
+        String flightNumber,
+        String cabinClass,
+        int stops,
         Instant occurredOn)
         implements DomainEvent {
 

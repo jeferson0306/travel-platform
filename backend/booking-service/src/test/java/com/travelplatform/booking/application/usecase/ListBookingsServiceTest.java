@@ -41,7 +41,8 @@ class ListBookingsServiceTest {
                 Booking.create(
                         travelerId,
                         new Email("traveler@example.com"),
-                        new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 1),
+                        new BookingReference(
+                                ItemType.FLIGHT, UUID.randomUUID().toString(), 1, null),
                         new Money(new BigDecimal("120.00"), "EUR"));
         when(bookingRepository.findByTravelerId(travelerId)).thenReturn(List.of(booking));
 

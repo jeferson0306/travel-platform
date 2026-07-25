@@ -2,13 +2,32 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { PlaneTakeoff, BedDouble, SearchX, CalendarSearch } from 'lucide-react';
+import { PlaneTakeoff, BedDouble, SearchX, CalendarSearch, Star, MapPin } from 'lucide-react';
 import { api, friendlyErrorMessage, type Flight, type Hotel } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SiteHeader } from '../components/SiteHeader';
 import { CheckoutModal, type CheckoutSummary } from '../components/CheckoutModal';
 import { AirportAutocomplete } from '../components/AirportAutocomplete';
 import { CityAutocomplete } from '../components/CityAutocomplete';
+import { formatMoney, formatDate, formatTime, formatDuration } from '../lib/format';
+import { destinationTheme } from '../lib/destinationTheme';
+
+/** What the frontend sends as CreateBookingRequest.itemSummary - it already has the full
+ * Flight/Hotel object from the search step, so it builds a short human-readable description
+ * here rather than booking-service looking it up (no synchronous cross-service calls, ADR 0004). */
+function flightSummary(flight: Flight): string {
+  return `${flight.origin} → ${flight.destination} · ${flight.flightNumber} · ${flight.airline}`;
+}
+
+function hotelSummary(hotel: Hotel): string {
+  return `${hotel.name}, ${hotel.city}`;
+}
+
+function stopsLabel(stops: number): string {
+  if (stops === 0) return 'Nonstop';
+  if (stops === 1) return '1 stop';
+  return `${stops} stops`;
+}
 
 const dateInputClass =
   'mt-1 w-full rounded-lg border border-ink-950/15 bg-white px-3 py-2 text-ink-950 outline-none transition focus:border-pine-500 focus:ring-2 focus:ring-pine-500/20';
@@ -89,6 +108,7 @@ export function SearchPage() {
       // booking itself still triggers the real choreography saga once submitted.
       await new Promise((resolve) => setTimeout(resolve, 600));
       const isFlight = pending.kind === 'FLIGHT';
+      const itemSummary = isFlight ? flightSummary(pending.item) : hotelSummary(pending.item);
       const { bookingId } = await api.createBooking(
         {
           travelerEmail: email,
@@ -97,12 +117,13 @@ export function SearchPage() {
           quantity: 1,
           amount: isFlight ? pending.item.priceAmount : pending.item.pricePerNightAmount,
           currency: isFlight ? pending.item.priceCurrency : pending.item.pricePerNightCurrency,
+          itemSummary,
         },
         token,
       );
       setPending(null);
       toast.success('Booking confirmed!');
-      navigate(`/booking/${bookingId}`);
+      navigate(`/booking/${bookingId}`, { state: { itemSummary } });
     } catch (err) {
       toast.error(friendlyErrorMessage(err));
     } finally {
@@ -114,7 +135,7 @@ export function SearchPage() {
     ? pending.kind === 'FLIGHT'
       ? {
           title: `${pending.item.origin} → ${pending.item.destination}`,
-          subtitle: 'Flight',
+          subtitle: `${pending.item.airline} ${pending.item.flightNumber} · ${stopsLabel(pending.item.stops)}`,
           amount: pending.item.priceAmount,
           currency: pending.item.priceCurrency,
         }
@@ -178,21 +199,50 @@ export function SearchPage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white px-4 py-3"
+                  className="flex flex-col gap-3 rounded-xl border border-ink-950/10 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="text-sm text-ink-900">
-                    {flight.origin} &rarr; {flight.destination} &middot;{' '}
-                    {new Date(flight.departureAt).toLocaleDateString()} &middot; {flight.priceAmount}{' '}
-                    {flight.priceCurrency} &middot; {flight.availableSeats} seats left
-                  </span>
-                  <motion.button
-                    {...tap}
-                    transition={spring}
-                    onClick={() => setPending({ kind: 'FLIGHT', item: flight })}
-                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
-                  >
-                    Book
-                  </motion.button>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-800/60">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-950/[0.06] text-[10px] font-semibold text-ink-800">
+                        {flight.airlineCode}
+                      </span>
+                      <span>{flight.airline}</span>
+                      <span>&middot;</span>
+                      <span>{flight.flightNumber}</span>
+                      {flight.cabinClass && (
+                        <>
+                          <span>&middot;</span>
+                          <span>{flight.cabinClass}</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-1 flex items-center gap-2 text-sm font-medium text-ink-950">
+                      <span>{formatTime(flight.departureAt)}</span>
+                      <span className="text-ink-800/40">{flight.origin}</span>
+                      <span className="text-ink-800/40">
+                        &mdash; {formatDuration(flight.departureAt, flight.arrivalAt)} &mdash;
+                      </span>
+                      <span className="text-ink-800/40">{flight.destination}</span>
+                      <span>{formatTime(flight.arrivalAt)}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-ink-800/60">
+                      {formatDate(flight.departureAt)} &middot; {stopsLabel(flight.stops)} &middot;{' '}
+                      {flight.availableSeats} seats left
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
+                    <span className="font-display text-lg text-ink-950">
+                      {formatMoney(flight.priceAmount, flight.priceCurrency)}
+                    </span>
+                    <motion.button
+                      {...tap}
+                      transition={spring}
+                      onClick={() => setPending({ kind: 'FLIGHT', item: flight })}
+                      className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
+                    >
+                      Book
+                    </motion.button>
+                  </div>
                 </motion.li>
               ))}
               {flights.length === 0 && !flightsSearched && (
@@ -234,28 +284,74 @@ export function SearchPage() {
           {searchingHotels && <ResultsSkeleton />}
           {!searchingHotels && (
             <ul className="mt-5 flex flex-col gap-2">
-              {hotels.map((hotel, i) => (
-                <motion.li
-                  key={hotel.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white px-4 py-3"
-                >
-                  <span className="text-sm text-ink-900">
-                    {hotel.name} ({hotel.city}) &middot; {hotel.pricePerNightAmount}{' '}
-                    {hotel.pricePerNightCurrency}/night &middot; {hotel.availableRooms} rooms left
-                  </span>
-                  <motion.button
-                    {...tap}
-                    transition={spring}
-                    onClick={() => setPending({ kind: 'HOTEL', item: hotel })}
-                    className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
+              {hotels.map((hotel, i) => {
+                const theme = destinationTheme(hotel.city);
+                return (
+                  <motion.li
+                    key={hotel.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex flex-col gap-3 rounded-xl border border-ink-950/10 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    Book
-                  </motion.button>
-                </motion.li>
-              ))}
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`hidden h-14 w-14 shrink-0 rounded-lg bg-gradient-to-br sm:block ${theme.gradient}`}
+                        aria-hidden
+                      />
+                      <div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-sm font-medium text-ink-950">{hotel.name}</span>
+                          <span className="flex items-center gap-0.5 text-xs text-amber-500">
+                            {Array.from({ length: hotel.starRating }).map((_, star) => (
+                              <Star key={star} size={11} fill="currentColor" strokeWidth={0} />
+                            ))}
+                          </span>
+                          {hotel.reviewScore != null && (
+                            <span className="text-xs text-ink-800/60">
+                              {hotel.reviewScore.toFixed(1)}
+                              {hotel.reviewCount > 0 && ` (${hotel.reviewCount})`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-800/60">
+                          <MapPin size={11} />
+                          {hotel.address ? `${hotel.address}, ${hotel.city}` : hotel.city}
+                        </p>
+                        {hotel.amenities.length > 0 && (
+                          <p className="mt-1.5 flex flex-wrap gap-1">
+                            {hotel.amenities.slice(0, 4).map((amenity) => (
+                              <span
+                                key={amenity}
+                                className={`rounded-full bg-ink-950/[0.05] px-2 py-0.5 text-[11px] ${theme.accent}`}
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-ink-800/60">{hotel.availableRooms} rooms left</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <div className="text-right">
+                        <span className="font-display block text-lg text-ink-950">
+                          {formatMoney(hotel.pricePerNightAmount, hotel.pricePerNightCurrency)}
+                        </span>
+                        <span className="text-[11px] text-ink-800/50">/night</span>
+                      </div>
+                      <motion.button
+                        {...tap}
+                        transition={spring}
+                        onClick={() => setPending({ kind: 'HOTEL', item: hotel })}
+                        className="rounded-lg bg-sunset-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sunset-600"
+                      >
+                        Book
+                      </motion.button>
+                    </div>
+                  </motion.li>
+                );
+              })}
               {hotels.length === 0 && !hotelsSearched && (
                 <EmptyState icon={BedDouble} text="Search above to see available hotels." />
               )}

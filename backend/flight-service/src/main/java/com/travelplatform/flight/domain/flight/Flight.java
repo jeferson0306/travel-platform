@@ -18,6 +18,11 @@ public final class Flight {
     private final Instant arrivalAt;
     private final Money price;
     private final int availableSeats;
+    private final String airline;
+    private final String airlineCode;
+    private final String flightNumber;
+    private final String cabinClass;
+    private final int stops;
     private final List<DomainEvent> domainEvents = new ArrayList<>();
 
     private Flight(
@@ -27,7 +32,12 @@ public final class Flight {
             Instant departureAt,
             Instant arrivalAt,
             Money price,
-            int availableSeats) {
+            int availableSeats,
+            String airline,
+            String airlineCode,
+            String flightNumber,
+            String cabinClass,
+            int stops) {
         this.id = id;
         this.origin = origin;
         this.destination = destination;
@@ -35,6 +45,11 @@ public final class Flight {
         this.arrivalAt = arrivalAt;
         this.price = price;
         this.availableSeats = availableSeats;
+        this.airline = airline;
+        this.airlineCode = airlineCode;
+        this.flightNumber = flightNumber;
+        this.cabinClass = cabinClass;
+        this.stops = stops;
     }
 
     public static Flight create(
@@ -43,12 +58,20 @@ public final class Flight {
             Instant departureAt,
             Instant arrivalAt,
             Money price,
-            int availableSeats) {
+            int availableSeats,
+            String airline,
+            String airlineCode,
+            String flightNumber,
+            String cabinClass,
+            int stops) {
         if (!arrivalAt.isAfter(departureAt)) {
             throw new InvalidFlightScheduleException();
         }
         if (availableSeats < 0) {
             throw new IllegalArgumentException("availableSeats must not be negative");
+        }
+        if (stops < 0) {
+            throw new IllegalArgumentException("stops must not be negative");
         }
         var flight =
                 new Flight(
@@ -58,7 +81,12 @@ public final class Flight {
                         departureAt,
                         arrivalAt,
                         price,
-                        availableSeats);
+                        availableSeats,
+                        airline,
+                        airlineCode,
+                        flightNumber,
+                        cabinClass,
+                        stops);
         flight.domainEvents.add(
                 new FlightCreated(
                         flight.id,
@@ -68,6 +96,11 @@ public final class Flight {
                         flight.arrivalAt,
                         flight.price,
                         flight.availableSeats,
+                        flight.airline,
+                        flight.airlineCode,
+                        flight.flightNumber,
+                        flight.cabinClass,
+                        flight.stops,
                         Instant.now()));
         return flight;
     }
@@ -79,8 +112,25 @@ public final class Flight {
             Instant departureAt,
             Instant arrivalAt,
             Money price,
-            int availableSeats) {
-        return new Flight(id, origin, destination, departureAt, arrivalAt, price, availableSeats);
+            int availableSeats,
+            String airline,
+            String airlineCode,
+            String flightNumber,
+            String cabinClass,
+            int stops) {
+        return new Flight(
+                id,
+                origin,
+                destination,
+                departureAt,
+                arrivalAt,
+                price,
+                availableSeats,
+                airline,
+                airlineCode,
+                flightNumber,
+                cabinClass,
+                stops);
     }
 
     public FlightId id() {
@@ -109,6 +159,26 @@ public final class Flight {
 
     public int availableSeats() {
         return availableSeats;
+    }
+
+    public String airline() {
+        return airline;
+    }
+
+    public String airlineCode() {
+        return airlineCode;
+    }
+
+    public String flightNumber() {
+        return flightNumber;
+    }
+
+    public String cabinClass() {
+        return cabinClass;
+    }
+
+    public int stops() {
+        return stops;
     }
 
     public List<DomainEvent> pullDomainEvents() {

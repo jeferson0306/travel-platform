@@ -21,11 +21,50 @@ class FlightTest {
         var departure = Instant.now().plus(1, ChronoUnit.DAYS);
         var arrival = departure.plus(10, ChronoUnit.HOURS);
 
-        var flight = Flight.create(LIS, GRU, departure, arrival, PRICE, 120);
+        var flight =
+                Flight.create(
+                        LIS,
+                        GRU,
+                        departure,
+                        arrival,
+                        PRICE,
+                        120,
+                        "TAP Air Portugal",
+                        "TP",
+                        "TP123",
+                        "ECONOMY",
+                        0);
 
         assertThat(flight.origin()).isEqualTo(LIS);
         assertThat(flight.destination()).isEqualTo(GRU);
         assertThat(flight.availableSeats()).isEqualTo(120);
+        assertThat(flight.airline()).isEqualTo("TAP Air Portugal");
+        assertThat(flight.airlineCode()).isEqualTo("TP");
+        assertThat(flight.flightNumber()).isEqualTo("TP123");
+        assertThat(flight.cabinClass()).isEqualTo("ECONOMY");
+        assertThat(flight.stops()).isEqualTo(0);
+    }
+
+    @Test
+    void createsAFlightWithoutCabinClass() {
+        var departure = Instant.now().plus(1, ChronoUnit.DAYS);
+        var arrival = departure.plus(10, ChronoUnit.HOURS);
+
+        var flight =
+                Flight.create(
+                        LIS,
+                        GRU,
+                        departure,
+                        arrival,
+                        PRICE,
+                        120,
+                        "TAP Air Portugal",
+                        "TP",
+                        "TP123",
+                        null,
+                        0);
+
+        assertThat(flight.cabinClass()).isNull();
     }
 
     @Test
@@ -33,7 +72,20 @@ class FlightTest {
         var departure = Instant.now().plus(1, ChronoUnit.DAYS);
         var arrival = departure.minus(1, ChronoUnit.HOURS);
 
-        assertThatThrownBy(() -> Flight.create(LIS, GRU, departure, arrival, PRICE, 120))
+        assertThatThrownBy(
+                        () ->
+                                Flight.create(
+                                        LIS,
+                                        GRU,
+                                        departure,
+                                        arrival,
+                                        PRICE,
+                                        120,
+                                        "TAP Air Portugal",
+                                        "TP",
+                                        "TP123",
+                                        "ECONOMY",
+                                        0))
                 .isInstanceOf(InvalidFlightScheduleException.class);
     }
 
@@ -42,7 +94,42 @@ class FlightTest {
         var departure = Instant.now().plus(1, ChronoUnit.DAYS);
         var arrival = departure.plus(10, ChronoUnit.HOURS);
 
-        assertThatThrownBy(() -> Flight.create(LIS, GRU, departure, arrival, PRICE, -1))
+        assertThatThrownBy(
+                        () ->
+                                Flight.create(
+                                        LIS,
+                                        GRU,
+                                        departure,
+                                        arrival,
+                                        PRICE,
+                                        -1,
+                                        "TAP Air Portugal",
+                                        "TP",
+                                        "TP123",
+                                        "ECONOMY",
+                                        0))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsNegativeStops() {
+        var departure = Instant.now().plus(1, ChronoUnit.DAYS);
+        var arrival = departure.plus(10, ChronoUnit.HOURS);
+
+        assertThatThrownBy(
+                        () ->
+                                Flight.create(
+                                        LIS,
+                                        GRU,
+                                        departure,
+                                        arrival,
+                                        PRICE,
+                                        120,
+                                        "TAP Air Portugal",
+                                        "TP",
+                                        "TP123",
+                                        "ECONOMY",
+                                        -1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -19,4 +19,9 @@ public record CreateFlightRequest(
         @NotNull @PositiveOrZero BigDecimal priceAmount,
         @NotBlank @Pattern(regexp = "^[A-Za-z]{3}$", message = "must be a 3-letter ISO 4217 code")
                 String priceCurrency,
-        @Min(0) int availableSeats) {}
+        @Min(0) int availableSeats,
+        @NotBlank String airline,
+        @NotBlank String airlineCode,
+        @NotBlank String flightNumber,
+        String cabinClass,
+        @Min(0) int stops) {}

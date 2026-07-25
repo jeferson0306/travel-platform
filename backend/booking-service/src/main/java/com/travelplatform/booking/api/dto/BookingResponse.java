@@ -12,7 +12,8 @@ public record BookingResponse(
         BigDecimal amount,
         String currency,
         String status,
-        Instant createdAt) {
+        Instant createdAt,
+        String itemSummary) {
 
     public static BookingResponse from(Booking booking) {
         return new BookingResponse(
@@ -23,6 +24,7 @@ public record BookingResponse(
                 booking.amount().amount(),
                 booking.amount().currency(),
                 booking.status().name(),
-                booking.createdAt());
+                booking.createdAt(),
+                booking.reference().itemSummary());
     }
 }

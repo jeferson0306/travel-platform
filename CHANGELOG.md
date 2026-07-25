@@ -10,6 +10,23 @@ and this project uses milestone-based versioning as defined in
 
 ### Added
 
+- Richer flight/hotel search results and booking details: `flight-service`
+  gains `airline`, `airlineCode`, `flightNumber`, `cabinClass`, `stops`;
+  `hotel-service` gains `address`, `starRating`, `amenities`,
+  `description`, `reviewScore`, `reviewCount` - all additive/optional
+  fields, no existing endpoint contract broken. `booking-service` gains an
+  optional `itemSummary` (trusted client input, same pattern as
+  `amount`/`currency`/`travelerEmail`) so "My bookings" and the booking
+  confirmation page can show what was actually booked instead of a bare
+  `itemId`. Frontend redesigned the flight/hotel result cards (duration,
+  cabin class, stops, star rating, amenities, review score) and added
+  `formatMoney`/`formatDate`/`formatDuration` (`lib/format.ts`) and a
+  purely decorative per-city gradient theme for hotel cards
+  (`lib/destinationTheme.ts`, no photo storage exists). `search-service`'s
+  own projection intentionally does not carry the new fields yet - the
+  frontend queries flight-service/hotel-service directly, not
+  search-service (documented gap, see `docs/events/flight-events.md` and
+  `hotel-events.md`).
 - Repository scaffolding: branching model, contribution guidelines, security
   policy, ADR process, base local infrastructure (MongoDB, Redis, Kafka,
   LocalStack).

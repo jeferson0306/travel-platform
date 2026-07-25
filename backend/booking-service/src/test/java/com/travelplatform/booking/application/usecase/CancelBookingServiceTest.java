@@ -46,7 +46,7 @@ class CancelBookingServiceTest {
                 Booking.create(
                         travelerId,
                         new Email("traveler@example.com"),
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         new Money(new BigDecimal("95.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 
@@ -77,7 +77,7 @@ class CancelBookingServiceTest {
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
                         new Email("traveler@example.com"),
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         new Money(new BigDecimal("95.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 

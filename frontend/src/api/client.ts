@@ -97,6 +97,11 @@ export interface Flight {
   priceAmount: number;
   priceCurrency: string;
   availableSeats: number;
+  airline: string;
+  airlineCode: string;
+  flightNumber: string;
+  cabinClass: string | null;
+  stops: number;
 }
 
 export interface Hotel {
@@ -106,6 +111,12 @@ export interface Hotel {
   pricePerNightAmount: number;
   pricePerNightCurrency: string;
   availableRooms: number;
+  address: string | null;
+  starRating: number;
+  amenities: string[];
+  description: string | null;
+  reviewScore: number | null;
+  reviewCount: number;
 }
 
 export interface CreateBookingRequest {
@@ -115,6 +126,7 @@ export interface CreateBookingRequest {
   quantity: number;
   amount: number;
   currency: string;
+  itemSummary?: string;
 }
 
 export interface CreateBookingResponse {
@@ -130,6 +142,7 @@ export interface Booking {
   currency: string;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
   createdAt: string;
+  itemSummary: string | null;
 }
 
 export const api = {

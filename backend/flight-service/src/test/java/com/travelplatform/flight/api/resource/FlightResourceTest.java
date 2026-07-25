@@ -50,7 +50,12 @@ class FlightResourceTest {
                                 arrival,
                                 new BigDecimal("120.00"),
                                 "EUR",
-                                50))
+                                50,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .post("/api/v1/flights")
                 .then()
                 .statusCode(201);
@@ -82,7 +87,12 @@ class FlightResourceTest {
                                 matchingDeparture.plus(1, ChronoUnit.HOURS),
                                 new BigDecimal("100.00"),
                                 "EUR",
-                                10))
+                                10,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .post("/api/v1/flights")
                 .then()
                 .statusCode(201);
@@ -96,7 +106,12 @@ class FlightResourceTest {
                                 otherDayDeparture.plus(1, ChronoUnit.HOURS),
                                 new BigDecimal("100.00"),
                                 "EUR",
-                                10))
+                                10,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP124",
+                                "ECONOMY",
+                                0))
                 .post("/api/v1/flights")
                 .then()
                 .statusCode(201);
@@ -128,7 +143,12 @@ class FlightResourceTest {
                                 departure.plus(1, ChronoUnit.HOURS),
                                 new BigDecimal("1"),
                                 "EUR",
-                                1))
+                                1,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .when()
                 .post("/api/v1/flights")
                 .then()
@@ -148,7 +168,12 @@ class FlightResourceTest {
                                 departure.plus(1, ChronoUnit.HOURS),
                                 new BigDecimal("1"),
                                 "EUR",
-                                1))
+                                1,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .when()
                 .post("/api/v1/flights")
                 .then()
@@ -168,7 +193,12 @@ class FlightResourceTest {
                                 Instant.now(),
                                 new BigDecimal("-1"),
                                 "EUR",
-                                -5))
+                                -5,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .when()
                 .post("/api/v1/flights")
                 .then()

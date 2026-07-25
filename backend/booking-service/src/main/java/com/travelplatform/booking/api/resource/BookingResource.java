@@ -69,7 +69,8 @@ public class BookingResource {
                                 request.itemId(),
                                 request.quantity(),
                                 request.amount(),
-                                request.currency()));
+                                request.currency(),
+                                request.itemSummary()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();

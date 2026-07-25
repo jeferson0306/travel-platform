@@ -61,7 +61,8 @@ class BookingResourceTest {
                                         UUID.randomUUID().toString(),
                                         2,
                                         new BigDecimal("450.00"),
-                                        "EUR"))
+                                        "EUR",
+                                        null))
                         .when()
                         .post("/api/v1/bookings")
                         .then()
@@ -97,7 +98,8 @@ class BookingResourceTest {
                                 UUID.randomUUID().toString(),
                                 1,
                                 new BigDecimal("100.00"),
-                                "EUR"))
+                                "EUR",
+                                null))
                 .when()
                 .post("/api/v1/bookings")
                 .then()
@@ -119,7 +121,8 @@ class BookingResourceTest {
                                         UUID.randomUUID().toString(),
                                         1,
                                         new BigDecimal("95.00"),
-                                        "EUR"))
+                                        "EUR",
+                                        null))
                         .post("/api/v1/bookings")
                         .then()
                         .extract()
@@ -170,7 +173,8 @@ class BookingResourceTest {
                                         UUID.randomUUID().toString(),
                                         1,
                                         new BigDecimal("95.00"),
-                                        "EUR"))
+                                        "EUR",
+                                        null))
                         .post("/api/v1/bookings")
                         .then()
                         .extract()
@@ -209,7 +213,8 @@ class BookingResourceTest {
                                 UUID.randomUUID().toString(),
                                 1,
                                 new BigDecimal("120.00"),
-                                "EUR"))
+                                "EUR",
+                                null))
                 .post("/api/v1/bookings")
                 .then()
                 .statusCode(201);
@@ -222,7 +227,8 @@ class BookingResourceTest {
                                 UUID.randomUUID().toString(),
                                 1,
                                 new BigDecimal("80.00"),
-                                "EUR"))
+                                "EUR",
+                                null))
                 .post("/api/v1/bookings")
                 .then()
                 .statusCode(201);
@@ -243,6 +249,63 @@ class BookingResourceTest {
     }
 
     @Test
+    void createsABookingWithoutAnItemSummaryAndItStaysNullInTheListResponse() {
+        var travelerId = UUID.randomUUID().toString();
+
+        given().header("Authorization", "Bearer " + tokenFor(travelerId))
+                .contentType("application/json")
+                .body(
+                        new CreateBookingRequest(
+                                "traveler@example.com",
+                                "FLIGHT",
+                                UUID.randomUUID().toString(),
+                                1,
+                                new BigDecimal("100.00"),
+                                "EUR",
+                                null))
+                .when()
+                .post("/api/v1/bookings")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + tokenFor(travelerId))
+                .when()
+                .get("/api/v1/bookings")
+                .then()
+                .statusCode(200)
+                .body("[0].itemSummary", org.hamcrest.Matchers.nullValue());
+    }
+
+    @Test
+    void createsABookingWithAnItemSummaryAndReturnsItUnchangedInTheListResponse() {
+        var travelerId = UUID.randomUUID().toString();
+        var itemSummary = "Lisbon -> Sao Paulo, TP123, TAP Air Portugal";
+
+        given().header("Authorization", "Bearer " + tokenFor(travelerId))
+                .contentType("application/json")
+                .body(
+                        new CreateBookingRequest(
+                                "traveler@example.com",
+                                "FLIGHT",
+                                UUID.randomUUID().toString(),
+                                1,
+                                new BigDecimal("589.00"),
+                                "EUR",
+                                itemSummary))
+                .when()
+                .post("/api/v1/bookings")
+                .then()
+                .statusCode(201);
+
+        given().header("Authorization", "Bearer " + tokenFor(travelerId))
+                .when()
+                .get("/api/v1/bookings")
+                .then()
+                .statusCode(200)
+                .body("[0].itemSummary", org.hamcrest.Matchers.equalTo(itemSummary));
+    }
+
+    @Test
     void rejectsInvalidPayload() {
         given().header("Authorization", "Bearer " + tokenFor(UUID.randomUUID().toString()))
                 .contentType("application/json")
@@ -253,7 +316,8 @@ class BookingResourceTest {
                                 UUID.randomUUID().toString(),
                                 1,
                                 new BigDecimal("95.00"),
-                                "EUR"))
+                                "EUR",
+                                null))
                 .when()
                 .post("/api/v1/bookings")
                 .then()

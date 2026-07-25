@@ -74,7 +74,7 @@ class S3ReceiptStorageTest {
         return Booking.create(
                 new TravelerId(UUID.randomUUID()),
                 new Email("traveler@example.com"),
-                new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2),
+                new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2, null),
                 new Money(new BigDecimal("450.00"), "EUR"));
     }
 }

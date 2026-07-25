@@ -25,7 +25,13 @@ public class CreateHotelService implements CreateHotelUseCase {
                         new HotelName(command.name()),
                         new City(command.city()),
                         new Money(command.pricePerNightAmount(), command.pricePerNightCurrency()),
-                        command.availableRooms());
+                        command.availableRooms(),
+                        command.address(),
+                        command.starRating(),
+                        command.amenities(),
+                        command.description(),
+                        command.reviewScore(),
+                        command.reviewCount());
         hotelRepository.save(hotel);
         return hotel.id();
     }

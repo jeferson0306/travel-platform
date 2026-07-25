@@ -68,7 +68,12 @@ public class FlightResource {
                                 request.arrivalAt(),
                                 request.priceAmount(),
                                 request.priceCurrency(),
-                                request.availableSeats()));
+                                request.availableSeats(),
+                                request.airline(),
+                                request.airlineCode(),
+                                request.flightNumber(),
+                                request.cabinClass(),
+                                request.stops()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();

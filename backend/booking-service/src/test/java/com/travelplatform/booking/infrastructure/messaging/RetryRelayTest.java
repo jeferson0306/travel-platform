@@ -62,7 +62,8 @@ class RetryRelayTest {
                                 UUID.randomUUID().toString(),
                                 1,
                                 new BigDecimal("450.00"),
-                                "EUR"))
+                                "EUR",
+                                null))
                 .post("/api/v1/bookings")
                 .then()
                 .extract()

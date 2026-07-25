@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { SiteHeader } from '../components/SiteHeader';
@@ -8,6 +8,10 @@ const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
 
 export function BookingConfirmationPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
+  // Passed via navigate() state from SearchPage, which already had the full flight/hotel
+  // details in hand - there is no GET /bookings/{id} endpoint (documented platform gap), so a
+  // direct visit/refresh of this page simply won't have it, and that's fine (falls back below).
+  const itemSummary = (useLocation().state as { itemSummary?: string } | null)?.itemSummary;
 
   return (
     <div className="min-h-screen">
@@ -35,6 +39,16 @@ export function BookingConfirmationPage() {
         >
           Booking confirmed
         </motion.h1>
+        {itemSummary && (
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.12 }}
+            className="mt-4 text-lg font-medium text-ink-950"
+          >
+            {itemSummary}
+          </motion.p>
+        )}
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

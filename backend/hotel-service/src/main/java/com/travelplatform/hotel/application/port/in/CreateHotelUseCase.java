@@ -2,6 +2,7 @@ package com.travelplatform.hotel.application.port.in;
 
 import com.travelplatform.hotel.domain.hotel.HotelId;
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface CreateHotelUseCase {
 
@@ -12,5 +13,11 @@ public interface CreateHotelUseCase {
             String city,
             BigDecimal pricePerNightAmount,
             String pricePerNightCurrency,
-            int availableRooms) {}
+            int availableRooms,
+            String address,
+            int starRating,
+            List<String> amenities,
+            String description,
+            Double reviewScore,
+            int reviewCount) {}
 }
