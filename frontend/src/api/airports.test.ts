@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchAirports } from './airports';
+import { searchAirports, formatAirportLabel } from './airports';
 
 function mockFetchOnce(body: unknown, ok = true) {
   vi.stubGlobal(
@@ -54,12 +54,22 @@ describe('searchAirports', () => {
   it('matches known cities whose official airport name does not contain the city (e.g. Porto)', async () => {
     // airportsapi.com has no city field, only "name" - Porto's real airport is "Francisco de
     // Sá Carneiro Airport", which the live API can never match on a "Porto" query. The curated
-    // KNOWN_CITY_AIRPORTS list patches exactly this gap.
+    // KNOWN_AIRPORTS list patches exactly this gap.
     mockFetchOnce({ data: [] });
 
     const result = await searchAirports('Porto');
 
-    expect(result).toEqual([{ iataCode: 'OPO', name: 'Francisco de Sá Carneiro Airport (Porto)', type: 'large_airport' }]);
+    expect(result).toEqual([
+      { iataCode: 'OPO', name: 'Francisco de Sá Carneiro Airport', type: 'large_airport', city: 'Porto', country: 'Portugal' },
+    ]);
+  });
+
+  it('matches a curated airport by country name, not just city', async () => {
+    mockFetchOnce({ data: [] });
+
+    const result = await searchAirports('Brazil');
+
+    expect(result.map((r) => r.iataCode)).toEqual(expect.arrayContaining(['GRU', 'GIG', 'BSB']));
   });
 
   it('does not duplicate an airport already suggested by the curated city list', async () => {
@@ -70,5 +80,19 @@ describe('searchAirports', () => {
     const result = await searchAirports('Lisbon');
 
     expect(result.filter((r) => r.iataCode === 'LIS')).toHaveLength(1);
+  });
+});
+
+describe('formatAirportLabel', () => {
+  it('formats a curated airport as "Country - City (CODE)"', () => {
+    expect(
+      formatAirportLabel({ iataCode: 'OPO', name: 'Francisco de Sá Carneiro Airport', type: 'large_airport', city: 'Porto', country: 'Portugal' }),
+    ).toBe('Portugal - Porto (OPO)');
+  });
+
+  it('falls back to "name (CODE)" when city/country are unknown (live API result)', () => {
+    expect(formatAirportLabel({ iataCode: 'BIG', name: 'Big International', type: 'large_airport' })).toBe(
+      'Big International (BIG)',
+    );
   });
 });

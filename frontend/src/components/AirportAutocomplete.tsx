@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { searchAirports, type AirportSuggestion } from '../api/airports';
+import { searchAirports, formatAirportLabel, type AirportSuggestion } from '../api/airports';
 
 interface AirportAutocompleteProps {
   label: string;
@@ -15,9 +15,18 @@ export function AirportAutocomplete({ label, value, onChange, placeholder }: Air
   const [loading, setLoading] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Tracks the code+label behind the currently displayed rich text, so the value-sync effect
+  // below can tell "value changed because we just selected this" (keep the rich label) apart
+  // from "value changed for some other reason" (fall back to showing the bare code).
+  const lastSelectedRef = useRef<{ code: string; label: string } | null>(null);
 
   useEffect(() => {
-    setQuery(value);
+    if (lastSelectedRef.current && lastSelectedRef.current.code === value) {
+      setQuery(lastSelectedRef.current.label);
+    } else {
+      setQuery(value);
+      lastSelectedRef.current = null;
+    }
   }, [value]);
 
   useEffect(() => {
@@ -45,8 +54,10 @@ export function AirportAutocomplete({ label, value, onChange, placeholder }: Air
   }, []);
 
   const select = (suggestion: AirportSuggestion) => {
+    const label = formatAirportLabel(suggestion);
+    lastSelectedRef.current = { code: suggestion.iataCode, label };
     onChange(suggestion.iataCode);
-    setQuery(suggestion.iataCode);
+    setQuery(label);
     setOpen(false);
   };
 
@@ -73,8 +84,14 @@ export function AirportAutocomplete({ label, value, onChange, placeholder }: Air
         <input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
+            const raw = e.target.value;
+            setQuery(raw);
             setOpen(true);
+            // Typing a bare 3-letter IATA code directly (the fallback this component's own hint
+            // text promises) should update the parent even without picking a dropdown suggestion.
+            if (/^[A-Za-z]{3}$/.test(raw.trim())) {
+              onChange(raw.trim().toUpperCase());
+            }
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
@@ -99,12 +116,14 @@ export function AirportAutocomplete({ label, value, onChange, placeholder }: Air
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(suggestion)}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                  className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm ${
                     index === highlighted ? 'bg-pine-600/10' : 'hover:bg-ink-950/5'
                   }`}
                 >
-                  <span className="text-ink-900">{suggestion.name}</span>
-                  <span className="ml-2 font-mono text-xs text-ink-800/60">{suggestion.iataCode}</span>
+                  <span className="text-ink-900">
+                    {suggestion.country && suggestion.city ? `${suggestion.country} - ${suggestion.city}` : suggestion.name}
+                  </span>
+                  <span className="shrink-0 font-mono text-xs text-ink-800/60">{suggestion.iataCode}</span>
                 </button>
               </li>
             ))}
