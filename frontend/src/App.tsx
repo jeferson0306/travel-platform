@@ -1,12 +1,21 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LandingPage } from './pages/LandingPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
 import { SearchPage } from './pages/SearchPage';
 import { BookingConfirmationPage } from './pages/BookingConfirmationPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Lazy at the route level (not nested inside the page) - the airplane 3D scene's three.js/
+// @react-three deps are only needed here. A nested React.lazy() one level down, inside an
+// otherwise-eager LandingPage, made Vite's dev dependency scanner discover those packages late
+// (after its initial scan of index.html's static import graph) and pre-bundle a second,
+// differently-hashed copy alongside the first - two live copies of @react-three/fiber genuinely
+// breaks its hooks ("Invalid hook call" inside <Canvas>, confirmed via the .vite/deps output and
+// component stack). Route-level lazy is the well-trodden path Vite's scanner handles correctly.
+const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
 
 export default function App() {
   const location = useLocation();
@@ -27,35 +36,37 @@ export default function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <Routes location={location}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/search"
-            element={
-              <ProtectedRoute>
-                <SearchPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/bookings"
-            element={
-              <ProtectedRoute>
-                <MyBookingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/booking/:bookingId"
-            element={
-              <ProtectedRoute>
-                <BookingConfirmationPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <Suspense fallback={<div className="min-h-screen bg-sand-50" />}>
+          <Routes location={location}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/booking/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <BookingConfirmationPage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );

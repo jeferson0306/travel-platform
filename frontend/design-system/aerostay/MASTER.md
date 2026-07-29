@@ -122,6 +122,15 @@ decision table:
   first.
 - Respect `prefers-reduced-motion` globally (already handled in
   `src/index.css`'s media query, and per-component in `ConfettiBurst.tsx`).
+- **A `React.lazy()` boundary that pulls in `three`/`@react-three/*` must
+  sit at the route level (top of `App.tsx`), not nested one level inside
+  an already-eager page.** A nested lazy boundary (e.g. lazy-loading
+  `Airplane3DSection` from inside an eager `LandingPage`) makes Vite's dev
+  dependency scanner discover those packages late and pre-bundle a
+  duplicate copy, breaking `@react-three/fiber`'s hooks with "Invalid hook
+  call" - only in `npm run dev`, production builds are unaffected. Fix:
+  make the _page_ the lazy boundary (`LandingPage = lazy(...)` in
+  `App.tsx`) and import the 3D section statically inside it.
 
 ---
 
