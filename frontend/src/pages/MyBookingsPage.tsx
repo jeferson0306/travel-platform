@@ -44,8 +44,10 @@ export function MyBookingsPage() {
         )}
 
         {bookings !== null && bookings.length === 0 && (
-          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-ink-950/[0.03] px-4 py-10 text-center text-sm text-ink-800/60">
-            <Inbox size={26} className="text-ink-950/25" />
+          <div className="bg-grain mt-6 flex flex-col items-center gap-3 overflow-hidden rounded-xl bg-ink-950/[0.03] px-4 py-10 text-center text-sm text-ink-800/60">
+            <span className="from-pine-400/25 to-sunset-400/25 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
+              <Inbox size={24} className="text-pine-600" />
+            </span>
             <p>
               No bookings yet -{' '}
               <a href="/search" className="text-pine-600 underline underline-offset-2">

@@ -62,10 +62,15 @@ function ResultsSkeleton() {
   );
 }
 
+/** A soft gradient badge behind the icon instead of a bare gray glyph - "empty states always
+ * need an illustration, never just an icon on blank space" per the design audit, without
+ * pulling in an external illustration asset that wouldn't match the brand palette anyway. */
 function EmptyState({ icon: Icon, text }: { icon: typeof SearchX; text: string }) {
   return (
-    <li className="flex flex-col items-center gap-2 rounded-xl bg-ink-950/[0.03] px-4 py-8 text-center text-sm text-ink-800/60">
-      <Icon size={22} className="text-ink-950/25" />
+    <li className="bg-grain flex flex-col items-center gap-3 overflow-hidden rounded-xl bg-ink-950/[0.03] px-4 py-10 text-center text-sm text-ink-800/60">
+      <span className="from-pine-400/25 to-sunset-400/25 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
+        <Icon size={24} className="text-pine-600" />
+      </span>
       {text}
     </li>
   );
