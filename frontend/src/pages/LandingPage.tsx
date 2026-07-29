@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, CreditCard, MailCheck, MapPin, ArrowRight } from 'lucide-react';
@@ -7,6 +7,10 @@ import { ScrollReveal } from '../components/ScrollReveal';
 import { CountUp } from '../components/CountUp';
 import { api, friendlyErrorMessage, type Flight } from '../api/client';
 import { gsap } from '../lib/gsap';
+
+// three.js + @react-three/fiber add real weight (~600KB) - lazy-load so only the landing page
+// (the one place with a 3D moment) pays for it, not every other route.
+const Airplane3DSection = lazy(() => import('../components/airplane/Airplane3DSection'));
 
 const FEATURED_DESTINATIONS = [
   { city: 'Lisbon', country: 'Portugal', blurb: 'Pastel facades, river light, tram bells.' },
@@ -187,6 +191,11 @@ export function LandingPage() {
           )}
         </div>
       </section>
+
+      {/* 3D airplane - draggable, flies into view on scroll */}
+      <Suspense fallback={<div className="h-[70vh] min-h-[420px] animate-pulse bg-ink-950" />}>
+        <Airplane3DSection />
+      </Suspense>
 
       {/* Stats */}
       <ScrollReveal className="border-y border-ink-950/10 bg-white/50" stagger={0.12}>
