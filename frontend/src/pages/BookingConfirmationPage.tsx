@@ -2,6 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { SiteHeader } from '../components/SiteHeader';
+import { ConfettiBurst } from '../components/ConfettiBurst';
 
 const tap = { whileHover: { scale: 1.03, y: -1 }, whileTap: { scale: 0.96 } };
 const spring = { type: 'spring' as const, stiffness: 400, damping: 17 };
@@ -15,6 +16,7 @@ export function BookingConfirmationPage() {
 
   return (
     <div className="min-h-screen">
+      <ConfettiBurst />
       <SiteHeader />
       <div className="mx-auto max-w-lg px-6 py-20 text-center">
         <motion.div
