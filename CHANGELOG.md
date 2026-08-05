@@ -10,6 +10,14 @@ and this project uses milestone-based versioning as defined in
 
 ### Added
 
+- Public live `/status` dashboard: polls every backend service's own
+  SmallRye `/health` endpoint directly from the browser (MongoDB, Kafka,
+  Redis dependency checks included), plus a static architecture pipeline
+  diagram and engineering highlights - all 9 services now expose CORS on
+  `/health` for this. Frontend deployed to Vercel
+  (`aerostay-jeferson0306s-projects.vercel.app`). A draggable 3D airplane
+  hero section (Three.js + React Three Fiber, GSAP ScrollTrigger entrance)
+  with a revolved-profile fuselage and tapered winglet wings.
 - Richer flight/hotel search results and booking details: `flight-service`
   gains `airline`, `airlineCode`, `flightNumber`, `cabinClass`, `stops`;
   `hotel-service` gains `address`, `starRating`, `amenities`,

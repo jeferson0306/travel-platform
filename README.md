@@ -19,15 +19,24 @@ not projected.
 
 ## Live demo
 
+**Frontend:** https://aerostay-jeferson0306s-projects.vercel.app
+
+**Live system status:** https://aerostay-jeferson0306s-projects.vercel.app/status
+
+- every service's own health endpoint, polled directly from your browser,
+  not a cached badge.
+
 <!-- Backend deployment pending - see docs/adr/0019-public-demo-deployment.md
      for the essential-flow scope and why the full stack (Kafka, OpenSearch,
-     Ollama included) isn't what's exposed publicly. -->
+     Ollama included) isn't what's exposed publicly, and its addendum for
+     the Railway -> Render hosting change. -->
 
-The public demo (frontend on Vercel, backend on Railway) is being finalized
-
-- this section will link to it once live. In the meantime, everything below
-  runs locally with one command (`make apps-up`) and was verified end-to-end
-  against the real running stack, screenshots included.
+Backend hosting is moving from Railway to Render (Railway's trial expired);
+the essential-flow services (identity, flight, hotel, booking, gateway)
+aren't public yet. Everything runs locally with one command (`make
+apps-up`) and was verified end-to-end against the real running stack,
+screenshots included - the `/status` page above is built to work against
+either.
 
 See
 [docs/runbooks/public-demo-verification.md](docs/runbooks/public-demo-verification.md)
@@ -107,7 +116,7 @@ grounded in).
 | Messaging      | Apache Kafka (consumer groups, retry queues, DLQ per group)            |
 | AI             | Ollama (local LLM, no paid API - ADR 0018)                             |
 | Cloud (local)  | LocalStack (S3), Terraform                                             |
-| Infrastructure | Docker Compose, Kubernetes manifests (Kustomize), Railway, Vercel      |
+| Infrastructure | Docker Compose, Kubernetes manifests (Kustomize), Render, Vercel       |
 | Observability  | Structured JSON logs, OpenTelemetry trace/span IDs, Prometheus metrics |
 | Quality        | JUnit 5, Testcontainers, ArchUnit, k6, Toxiproxy, JaCoCo               |
 

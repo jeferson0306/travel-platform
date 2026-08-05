@@ -1,0 +1,64 @@
+# Render Blueprint - prepared, NOT yet deployed (see docs/adr/0019-public-demo-deployment.md's
+# 2026-08-05 addendum and docs/deploy/render.md for the full decision trail and setup steps).
+#
+# Only identity-service and gateway are defined here today, on purpose: they're the two
+# essential-flow services that don't touch Kafka, and this repo's ADR 0019 already rejected
+# Render once specifically because its free tier has no managed Kafka/Redis-for-messaging - that
+# constraint hasn't changed. flight/hotel/booking/payment/notification-service are commented out
+# below until one of the two paths in the ADR addendum is chosen (Kafka-less demo, or an external
+# managed Kafka like Upstash). Redis IS included below - it's only used for the gateway's rate
+# limiter, a much smaller ask than the full event bus, and Render's free Key Value tier covers it.
+#
+# All backend services build from backend/Dockerfile.railway (repo-root build context, Maven runs
+# inside the image) - that file is provider-agnostic despite its name; see its own header comment.
+
+services:
+  - type: redis
+    name: aerostay-redis
+    plan: free
+    ipAllowList: [] # only reachable from other Render services in this account
+
+  - type: web
+    name: aerostay-identity
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: identity-service
+    envVars:
+      - key: MONGO_URI
+        sync: false # set manually from the MongoDB Atlas connection string, never committed
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  - type: web
+    name: aerostay-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: gateway
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aerostay-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  # --- Pending a Kafka hosting decision (ADR 0019 addendum) - not deployed ---
+  # - type: web
+  #   name: aerostay-flight
+  #   runtime: docker
+  #   dockerfilePath: ./backend/Dockerfile.railway
+  #   dockerContext: .
+  #   dockerBuildArgs: { SERVICE_MODULE: flight-service }
+  #   envVars:
+  #     - key: MONGO_URI
+  #       sync: false
+  #     - key: KAFKA_BOOTSTRAP_SERVERS
+  #       sync: false
+  # (same shape for hotel-service, booking-service, payment-service, notification-service)
