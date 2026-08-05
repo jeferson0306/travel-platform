@@ -93,7 +93,7 @@ const PIPELINE_STAGES = [
   },
   {
     icon: Radio,
-    title: 'Kafka events',
+    title: 'RabbitMQ events',
     body: 'booking-created, payment-authorized, flight-created... consumed asynchronously',
   },
   {
@@ -104,7 +104,7 @@ const PIPELINE_STAGES = [
 ];
 
 const ENGINEERING_HIGHLIGHTS = [
-  { icon: GitBranch, text: 'Outbox pattern for booking-service - no dual-write inconsistency between DB and Kafka' },
+  { icon: GitBranch, text: 'Outbox pattern for booking-service - no dual-write inconsistency between DB and RabbitMQ' },
   { icon: ShieldCheck, text: 'Fault tolerance: timeout, circuit breaker, bulkhead, retry only on idempotent GETs' },
   { icon: KeyRound, text: 'JWT-verified writes on every service, fast-failed at the gateway before hitting business logic' },
   { icon: Gauge, text: 'Mutation testing (PIT) + JaCoCo coverage gate enforced in the Maven reactor, not just line coverage' },

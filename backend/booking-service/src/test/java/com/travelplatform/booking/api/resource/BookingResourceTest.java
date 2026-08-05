@@ -7,9 +7,9 @@ import static org.awaitility.Awaitility.await;
 import com.travelplatform.booking.api.dto.CreateBookingRequest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.jwt.build.Jwt;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
+import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
@@ -82,9 +82,9 @@ class BookingResourceTest {
                             assertThat(message).isPresent();
                             assertThat(message.get().getPayload()).contains(travelerId);
                             var metadata =
-                                    message.get().getMetadata(OutgoingKafkaRecordMetadata.class);
+                                    message.get().getMetadata(OutgoingRabbitMQMetadata.class);
                             assertThat(metadata).isPresent();
-                            assertThat(metadata.get().getTopic()).isEqualTo("booking-created");
+                            assertThat(metadata.get().getRoutingKey()).isEqualTo("booking-created");
                         });
     }
 
@@ -144,11 +144,11 @@ class BookingResourceTest {
                                                     m ->
                                                             m.getPayload().contains(bookingId)
                                                                     && m.getMetadata(
-                                                                                    OutgoingKafkaRecordMetadata
+                                                                                    OutgoingRabbitMQMetadata
                                                                                             .class)
                                                                             .map(
-                                                                                    OutgoingKafkaRecordMetadata
-                                                                                            ::getTopic)
+                                                                                    OutgoingRabbitMQMetadata
+                                                                                            ::getRoutingKey)
                                                                             .map(
                                                                                     "booking-cancelled"
                                                                                             ::equals)

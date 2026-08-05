@@ -9,7 +9,7 @@ plausible it looks.
 - Hexagonal per service: `api / application / domain / infrastructure`,
   enforced by ArchUnit tests. Domain has zero framework imports.
   (`gateway` is the sole exception - no domain, ADR 0013.)
-- Cross-service communication is Kafka events only - never add a
+- Cross-service communication is RabbitMQ events only - never add a
   synchronous REST call between services (ADR 0004; audited in ADR 0014).
 - New aggregates publish via the transactional outbox (ADR 0007); new
   consumers follow the idempotency + retry-queue + DLQ shape

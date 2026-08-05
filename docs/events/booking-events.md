@@ -79,7 +79,7 @@ reserved is still out of scope - no consumer for it yet.
 ## Delivery guarantees
 
 At-least-once. Both events are written to the transactional outbox in the
-same MongoDB transaction as the booking write, then relayed to Kafka - see
+same MongoDB transaction as the booking write, then relayed to RabbitMQ - see
 [docs/adr/0007-transactional-outbox.md](../adr/0007-transactional-outbox.md).
 A consumer may see the same event more than once and must be idempotent.
 
@@ -93,9 +93,9 @@ A consumer may see the same event more than once and must be idempotent.
   silent no-op.
 - **Transient/business failure** (Mongo error, or insufficient
   seats/rooms): recorded in a `retry_tasks` collection and retried with
-  exponential backoff by a scheduled relay, rather than nacking the Kafka
+  exponential backoff by a scheduled relay, rather than nacking the RabbitMQ
   message - see the ADR 0004 M10 addendum for why this is Mongo-backed
-  rather than a literal second Kafka topic.
+  rather than a literal second RabbitMQ queue.
 - **Malformed message**: logged and dropped immediately - not retried,
   since retrying can never fix a parsing failure.
 - **Exhausted retries**: moved to a `dead_letters` collection and published

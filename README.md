@@ -27,7 +27,7 @@ not projected.
   not a cached badge.
 
 <!-- Backend deployment pending - see docs/adr/0019-public-demo-deployment.md
-     for the essential-flow scope and why the full stack (Kafka, OpenSearch,
+     for the essential-flow scope and why the full stack (RabbitMQ, OpenSearch,
      Ollama included) isn't what's exposed publicly, and its addendum for
      the Railway -> Render hosting change. -->
 
@@ -84,7 +84,7 @@ C4Context
 ```
 
 Nine backend services sit behind a single API gateway, communicating with
-each other exclusively via Kafka events - there is no synchronous
+each other exclusively via RabbitMQ events - there is no synchronous
 service-to-service REST call anywhere in the platform (audited in
 ADR 0014). See [docs/c4](docs/c4) for the full context and container
 diagrams, [ARCHITECTURE.md](ARCHITECTURE.md) for the reasoning behind the
@@ -113,7 +113,7 @@ grounded in).
 | Backend        | Java 25, Quarkus 3, RESTEasy Reactive, Hibernate Validator             |
 | Frontend       | React 19, TypeScript, Vite, React Router                               |
 | Data           | MongoDB (per-service), Redis (rate limits), OpenSearch (search)        |
-| Messaging      | Apache Kafka (consumer groups, retry queues, DLQ per group)            |
+| Messaging      | RabbitMQ (topic exchanges, per-consumer queues, DLQ per consumer)      |
 | AI             | Ollama (local LLM, no paid API - ADR 0018)                             |
 | Cloud (local)  | LocalStack (S3), Terraform                                             |
 | Infrastructure | Docker Compose, Kubernetes manifests (Kustomize), Render, Vercel       |
@@ -130,7 +130,7 @@ them, what was actually measured once built.
 travel-platform/
 ├── backend/            # Nine microservices (Quarkus) + shared parent POM
 ├── frontend/           # React application (register, search, book)
-├── infrastructure/     # Docker Compose, Kubernetes, Terraform, Kafka
+├── infrastructure/     # Docker Compose, Kubernetes, Terraform, RabbitMQ
 ├── docs/                # ADRs, C4 diagrams, runbooks, context/prompts for AI agents
 ├── testing/            # k6 load scripts, Toxiproxy chaos scenario
 └── .github/            # Templates, CODEOWNERS, CI workflow

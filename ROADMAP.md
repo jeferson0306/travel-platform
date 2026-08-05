@@ -124,15 +124,19 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       (register, search, booking confirmation) from a locally seeded run,
       minimal companion frontend (register/login/search/book) built and
       verified against the real stack, ADR 0019 scoping the public backend
-      deployment to the essential booking flow (Kafka/saga included,
+      deployment to the essential booking flow (async saga included,
       OpenSearch/Ollama excluded - neither fits a free tier), plus a public
       `/status` dashboard polling every service's real health endpoint
-      live from the browser. **Frontend deployed** (Vercel). **Backend
-      deployment in progress**: Railway's trial expired before go-live, so
-      hosting is moving to Render + MongoDB Atlas - see ADR 0019's
-      2026-08-05 addendum and [docs/deploy/render.md](docs/deploy/render.md)
-      for the reopened Kafka-hosting trade-off and the exact steps, not
-      yet executed.
+      live from the browser. **Frontend deployed** (Vercel). **Messaging
+      backbone migrated from Kafka to RabbitMQ** (ADR 0004's 2026-08-05
+      addendum) - the hosting blocker that stalled backend deployment is
+      resolved (CloudAMQP's free tier vs. no free managed Kafka anywhere),
+      verified end-to-end against a real local RabbitMQ (booking → payment
+      → confirmation → inventory decrement → notification email, unmodified
+      behavior). **Backend deployment in progress**: Railway's trial
+      expired before go-live, so hosting is moving to Render + MongoDB
+      Atlas + CloudAMQP - see [docs/deploy/render.md](docs/deploy/render.md)
+      for the exact steps, not yet executed.
 
 Milestones are deliberately small — each should be shippable and reviewable
 in a single pull request or a short stack of PRs.

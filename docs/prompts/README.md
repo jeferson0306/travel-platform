@@ -16,7 +16,7 @@ Templates:
   topics, docs).
 - [new-endpoint.md](new-endpoint.md) - add a REST endpoint (hexagonal
   placement, authz, error shape, tests).
-- [new-kafka-consumer.md](new-kafka-consumer.md) - add an event consumer
+- [new-rabbitmq-consumer.md](new-rabbitmq-consumer.md) - add an event consumer
   (idempotency, retry/DLQ shape, topic wiring).
 - [new-adr.md](new-adr.md) - write an ADR in the house style.
 

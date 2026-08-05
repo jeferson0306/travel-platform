@@ -65,7 +65,7 @@ spec:
       targetPort: 11434
 ---
 # Pulls the default model via Ollama's own HTTP API - same one-shot bootstrap pattern as
-# kafka-init/mongodb-init (infrastructure/kubernetes/base/infra/kafka.yaml,
+# rabbitmq-init/mongodb-init (infrastructure/kubernetes/base/infra/rabbitmq.yaml,
 # infrastructure/kubernetes/base/infra/mongodb.yaml). Genuinely slow the first time (~4.7GB).
 apiVersion: batch/v1
 kind: Job

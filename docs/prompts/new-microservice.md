@@ -19,7 +19,7 @@ conventions (docs/context/conventions.md, docs/context/service-catalog.md):
 - Observability: shared structured-JSON request logging, `/health/ready`,
   `/health/live`, Prometheus metrics (M6 baseline - copy any service).
 - Events: outbox pattern if it publishes (ADR 0007); the standard consumer
-  shape if it consumes (docs/prompts/new-kafka-consumer.md).
+  shape if it consumes (docs/prompts/new-rabbitmq-consumer.md).
 - Canonical error shape via exception mappers.
 - Wiring, all mandatory in the same PR:
   - `ci.yml` service matrix,

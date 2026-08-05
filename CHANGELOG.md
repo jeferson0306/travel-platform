@@ -8,11 +8,32 @@ and this project uses milestone-based versioning as defined in
 
 ## [Unreleased]
 
+### Changed
+
+- **Messaging backbone migrated from Kafka to RabbitMQ** across all six
+  messaging-dependent services (booking, flight, hotel, payment,
+  notification, search) - see
+  [docs/adr/0004-use-kafka-for-event-driven-communication.md](docs/adr/0004-use-kafka-for-event-driven-communication.md)'s
+  2026-08-05 addendum. Driven by hosting cost (no free managed Kafka
+  anywhere vs. CloudAMQP's genuinely free RabbitMQ tier), not a
+  functional gap - the topology (topic exchange per publisher, routing
+  key per event type, one durable queue per consumer) is a direct
+  mapping of the old topic/consumer-group model. Only the four
+  `OutboxRelay` classes needed a Java change (Kafka's dynamic per-message
+  topic metadata → RabbitMQ's per-message routing-key metadata); every
+  consumer, every DLQ publisher, and the whole test suite were unchanged
+  (tests already ran against `smallrye-in-memory`, never a real broker).
+  `infrastructure/docker/docker-compose.yml`'s `kafka`/`kafka-init`
+  became `rabbitmq`/`rabbitmq-init`. Verified end-to-end against a real
+  local RabbitMQ: a booking decremented flight inventory by exactly the
+  booked quantity, was authorized, confirmed, and triggered a
+  notification email - the full choreography saga, unmodified behavior.
+
 ### Added
 
 - Public live `/status` dashboard: polls every backend service's own
-  SmallRye `/health` endpoint directly from the browser (MongoDB, Kafka,
-  Redis dependency checks included), plus a static architecture pipeline
+  SmallRye `/health` endpoint directly from the browser (MongoDB,
+  RabbitMQ, Redis dependency checks included), plus a static architecture pipeline
   diagram and engineering highlights - all 9 services now expose CORS on
   `/health` for this. Frontend deployed to Vercel
   (`aerostay-jeferson0306s-projects.vercel.app`). A draggable 3D airplane

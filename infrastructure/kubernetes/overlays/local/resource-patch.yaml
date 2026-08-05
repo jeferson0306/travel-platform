@@ -1,6 +1,6 @@
 # The base manifests' resource requests/limits target a real cluster with real headroom (see
 # ADR 0016). This machine's Docker Desktop VM only has ~3.8GiB total, which the base's sum of
-# requests (~3.7GiB across 13 workloads) leaves no room in for kube-system itself - `kafka`
+# requests (~3.7GiB across 13 workloads) leaves no room in for kube-system itself - a service
 # landed `Pending` with "Insufficient memory" the first time this ran against `kind` here. Rather
 # than quietly shrinking the "real" numbers in base (which should stay honest about what a real
 # deployment needs), this overlay - whose whole job is "how this runs on my machine" - trims
@@ -136,21 +136,22 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kafka
+  name: rabbitmq
   namespace: travel-platform
 spec:
   template:
     spec:
       containers:
-        - name: kafka
-          env:
-            # Not set in base: without an explicit heap cap the broker JVM sizes its heap off the
-            # container's visible memory, which fights directly with the tighter limit below -
-            # same reasoning as opensearch's OPENSEARCH_JAVA_OPTS in base.
-            - { name: KAFKA_HEAP_OPTS, value: "-Xms256m -Xmx512m" }
+        - name: rabbitmq
           resources:
-            requests: { cpu: 100m, memory: 560Mi }
-            limits: { cpu: 500m, memory: 896Mi }
+            # No measured footprint yet - rabbitmq.yaml (base) was never live-deployed against a
+            # real kind cluster the way kafka.yaml was (ADR 0016 measured kafka's ~737MiB idle;
+            # that finding retired with kafka itself, see ADR 0004's 2026-08-05 addendum). RabbitMQ
+            # has no JVM heap to size, so base's own requests/limits are already close to what this
+            # constrained overlay would trim to - kept identical here rather than guess a smaller
+            # number with no measurement behind it.
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
 ---
 apiVersion: apps/v1
 kind: Deployment

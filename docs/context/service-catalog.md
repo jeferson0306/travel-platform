@@ -9,7 +9,7 @@ Every backend service except `gateway` shares the hexagonal layout
 `api / application / domain / infrastructure` (enforced by ArchUnit tests)
 and the shared conventions in [conventions.md](conventions.md): canonical
 error shape, structured JSON request logs, health/metrics endpoints,
-Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
+Mongo-backed retry queue + per-consumer-group RabbitMQ DLQ for consumers
 (except search-service, which keeps that bookkeeping in OpenSearch).
 
 ## identity-service (8081)
@@ -107,7 +107,7 @@ Twins, differing only in the inventory noun (seats vs rooms).
 
 ## assistant-service (8088)
 
-- **Owns**: nothing - stateless, read-only. No MongoDB, no Kafka. Its one
+- **Owns**: nothing - stateless, read-only. No MongoDB, no RabbitMQ. Its one
   synchronous external dependency is Ollama (local LLM runtime, ADR 0018),
   the third such dependency in this platform after gateway->backends and
   search-service->OpenSearch (ADR 0014) - same `@Timeout`/`@Retry` pattern.

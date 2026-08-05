@@ -22,7 +22,7 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
       # See booking-service/src/main/resources/application.yml for the rationale - tests use
       # the in-memory connector (see %test below).
@@ -35,18 +35,22 @@ mp:
       publickey:
         location: publicKey.pem
   messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
     incoming:
       booking-confirmed:
-        connector: smallrye-kafka
-        topic: booking-confirmed
-        group.id: notification-processor
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-confirmed.notification-processor
+        routing-keys: booking-confirmed
     outgoing:
       booking-confirmed-dlq:
-        connector: smallrye-kafka
-        topic: booking-confirmed.notification-processor.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-confirmed.notification-processor.dlq
 
 "%dev":
   quarkus:
@@ -76,6 +80,7 @@ mp:
   quarkus:
     mongodb:
       connection-string: ${MONGO_URI}
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}

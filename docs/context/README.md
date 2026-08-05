@@ -11,7 +11,7 @@ Read in this order:
    the services table, the saga, the full API surface, how to run it.
 2. [service-catalog.md](service-catalog.md) - per-service detail:
    ownership, endpoints, events published/consumed, quirks.
-3. [event-catalog.md](event-catalog.md) - every Kafka topic,
+3. [event-catalog.md](event-catalog.md) - every RabbitMQ event type,
    publisher/consumer cross-reference, DLQ naming, publishing rules.
 4. [conventions.md](conventions.md) - the rules any change must follow
    (architecture, API, git workflow, commit format, testing gates).

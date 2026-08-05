@@ -148,11 +148,15 @@ forward, neither chosen yet:
    Render's outbound-connection limits or Upstash's free-tier throughput
    ceiling.
 
-`render.yaml` (repo root) is prepared for path 1 today - `identity` and
-`gateway` only, since neither touches Kafka - with the remaining services
-commented out pending one of the two decisions above. Not yet deployed;
-kept local until the user chooses a path. See
-[docs/deploy/render.md](../deploy/render.md).
+**Resolved (2026-08-05)**: path 2 was chosen, but not via Upstash Kafka -
+see ADR 0004's 2026-08-05 addendum for the fuller story. The platform
+migrated its messaging backbone from Kafka to RabbitMQ, which CloudAMQP
+offers a genuinely free managed tier for. `render.yaml` (repo root) now
+defines all six essential-flow services (`identity`, `flight`, `hotel`,
+`booking`, `payment`, `gateway` - `notification`/`search` remain optional
+extras) with a `RABBITMQ_URL` env var per service pointing at a CloudAMQP
+instance. Still not deployed - kept local until the user actually
+provisions a CloudAMQP account and runs the steps below.
 
 ## Consequences
 

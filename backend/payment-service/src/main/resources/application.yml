@@ -22,7 +22,7 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
       # See booking-service/src/main/resources/application.yml for the rationale - tests use
       # the in-memory connector (see %test below).
@@ -35,35 +35,41 @@ mp:
       publickey:
         location: publicKey.pem
   messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
     incoming:
       booking-created:
-        connector: smallrye-kafka
-        topic: booking-created
-        group.id: payment-processor
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-created.payment-processor
+        routing-keys: booking-created
       booking-cancelled:
-        connector: smallrye-kafka
-        topic: booking-cancelled
-        group.id: payment-processor
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-cancelled.payment-processor
+        routing-keys: booking-cancelled
     outgoing:
       payment-events:
-        connector: smallrye-kafka
-        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        connector: smallrye-rabbitmq
+        exchange:
+          name: payment-events
+        # Overridden per-message by OutboxRelay (routing key = the event's eventType) - this
         # default only satisfies config validation and is never actually used.
-        topic: payment-events-default
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        default-routing-key: payment-events-default
       booking-created-dlq:
-        connector: smallrye-kafka
-        topic: booking-created.payment-processor.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-created.payment-processor.dlq
       booking-cancelled-dlq:
-        connector: smallrye-kafka
-        topic: booking-cancelled.payment-processor.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-cancelled.payment-processor.dlq
 
 "%dev":
   quarkus:
@@ -99,6 +105,7 @@ mp:
   quarkus:
     mongodb:
       connection-string: ${MONGO_URI}
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}

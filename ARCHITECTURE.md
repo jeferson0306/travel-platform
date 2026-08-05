@@ -11,7 +11,7 @@ _why_ it got that way and what was rejected.
    convenient to split.** Every service boundary below maps to a business
    capability with its own data and lifecycle.
 2. **Framework at the edges, domain in the center.** Business rules never
-   depend on Quarkus, MongoDB, or Kafka types — those are adapters. See
+   depend on Quarkus, MongoDB, or RabbitMQ types — those are adapters. See
    "Package structure" below.
 3. **Every cross-service interaction is either a synchronous REST call to a
    narrow, versioned API, or an asynchronous domain event.** There is no
@@ -22,17 +22,17 @@ _why_ it got that way and what was rejected.
 
 ## Service map
 
-| Service                | Owns                                       | Talks to                                                                                  |
-| ---------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                                                      |
-| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), Kafka (`booking-*` events)                           |
-| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), Kafka (`payment-*` events)                                        |
-| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                                                 |
-| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                                                 |
-| `notification-service` | Email/SMS/push delivery                    | Kafka (consumes `booking-confirmed`)                                                      |
-| `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), Kafka (consumes `flight-created`/`hotel-created`) |
-| `assistant-service`    | Engineering Q&A grounded in docs/context   | Ollama, local LLM runtime (ADR 0018)                                                      |
-| `gateway`              | Routing, JWT fast-fail, rate limiting      | fronts every service above (ADR 0013), Redis (rate limit counters)                        |
+| Service                | Owns                                       | Talks to                                                                                     |
+| ---------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `identity-service`     | Users, credentials, sessions, RBAC         | issues JWTs consumed by all services                                                         |
+| `booking-service`      | Reservation lifecycle                      | flight/hotel-service (availability), RabbitMQ (`booking-*` events)                           |
+| `payment-service`      | Payment authorization/capture, idempotency | booking-service (saga), RabbitMQ (`payment-*` events)                                        |
+| `flight-service`       | Flight inventory & pricing                 | search-service (indexing)                                                                    |
+| `hotel-service`        | Hotel inventory & pricing                  | search-service (indexing)                                                                    |
+| `notification-service` | Email/SMS/push delivery                    | RabbitMQ (consumes `booking-confirmed`)                                                      |
+| `search-service`       | Autocomplete & route/city search           | OpenSearch (its only store - ADR 0012), RabbitMQ (consumes `flight-created`/`hotel-created`) |
+| `assistant-service`    | Engineering Q&A grounded in docs/context   | Ollama, local LLM runtime (ADR 0018)                                                         |
+| `gateway`              | Routing, JWT fast-fail, rate limiting      | fronts every service above (ADR 0013), Redis (rate limit counters)                           |
 
 A `currency-service` was sketched in early planning (FX rates, multi-currency
 conversion) but never built - `Money` value objects in `booking-service` and
@@ -53,11 +53,11 @@ com.travelplatform.<service>/
 │                       # No framework imports.
 ├── application/        # Use cases / application services. Orchestrates domain
 │                       # objects, defines ports (interfaces) infrastructure implements.
-├── infrastructure/      # Adapters: MongoDB repositories, Kafka producers/consumers,
+├── infrastructure/      # Adapters: MongoDB repositories, RabbitMQ producers/consumers,
 │                       # REST clients to other services, S3/SES clients.
 ├── api/                # Inbound adapters: REST resources, DTOs, mappers (MapStruct).
 ├── configuration/       # Wiring, MicroProfile Config, security config.
-├── messaging/          # Kafka topic definitions, event schemas, consumer wiring.
+├── messaging/          # RabbitMQ exchange/queue definitions, event schemas, consumer wiring.
 └── shared/             # Cross-cutting kernel shared within the service only.
 ```
 
@@ -74,7 +74,7 @@ through the events it publishes. See ADR
 
 ## Event-driven backbone
 
-Kafka is the integration backbone for anything that does not need an
+RabbitMQ is the integration backbone for anything that does not need an
 immediate synchronous answer. Topics, producers, and consumers are documented
 as they are introduced in [docs/asyncapi](docs/asyncapi) and
 [docs/events](docs/events). See ADR
@@ -100,7 +100,7 @@ Tolerance `Guard` (timeout, circuit breaker, bulkhead; retry only for
 idempotent GET/HEAD), one independent `Guard` per backend so one struggling
 service can't trip the breaker for the rest. `search-service` wraps its
 OpenSearch read queries in `@Timeout`/`@Retry`. Every other service's
-resilience story for its Kafka consumers is the Mongo/OpenSearch-backed
+resilience story for its RabbitMQ consumers is the Mongo/OpenSearch-backed
 retry queue + DLQ pattern from M10 (ADR 0004's addendum), not Fault
 Tolerance annotations - the two mechanisms would conflict if stacked.
 Operational playbooks for these failure modes live in
@@ -140,7 +140,7 @@ downstream reacts to "a notification was sent." `search-service` (M13, ADR 0012)
 both its query engine and its only store, since it owns no source data of
 its own (every document is a rebuildable projection of flight-service's/
 hotel-service's own data). It is also the first fully public service (no
-authentication anywhere) and the first where a duplicate Kafka delivery
+authentication anywhere) and the first where a duplicate RabbitMQ delivery
 needs no idempotency claim collection, since indexing by id is a natural
 upsert. `gateway` (M14, ADR 0013) fronts every service above it: routing by
 path prefix, a JWT fast-fail check (signature/expiry only - authorization

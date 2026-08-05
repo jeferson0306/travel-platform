@@ -7,7 +7,7 @@ the code disagree, the code wins and this file has a bug.
 ## What this is
 
 An event-driven travel platform: 9 Quarkus (Java 25) microservices behind
-a single gateway, communicating exclusively via Kafka events (no
+a single gateway, communicating exclusively via RabbitMQ events (no
 synchronous service-to-service REST anywhere - ADR 0004, verified by audit
 in ADR 0014). Bookings drive a choreography saga:
 booking → payment authorization → booking confirmation → notification.
@@ -27,7 +27,7 @@ booking → payment authorization → booking confirmation → notification.
 | `assistant-service`    | 8088 | none (stateless)       | MANAGER/ADMIN/SUPER_ADMIN/SUPPORT     | Engineering Q&A grounded in docs/context (ADR 0018)        |
 
 Infra: MongoDB (single-node replica set `rs0` - transactions for the
-outbox), Kafka (single KRaft broker, `kafka:19092` in-network), Redis,
+outbox), RabbitMQ (single broker, `rabbitmq:5672` in-network), Redis,
 OpenSearch, LocalStack (S3 `booking-receipts` bucket, ADR 0008/0009),
 Ollama (local LLM runtime backing assistant-service, ADR 0018).
 
@@ -77,7 +77,7 @@ There is no GET-booking-by-id endpoint and no self-service role elevation
 ## Deeper references
 
 - Per-service details: [service-catalog.md](service-catalog.md)
-- Kafka topics and payloads: [event-catalog.md](event-catalog.md) and
+- RabbitMQ events and payloads: [event-catalog.md](event-catalog.md) and
   [docs/events](../events)
 - Rules any change must follow: [conventions.md](conventions.md)
 - Design decisions: [docs/adr](../adr) (0001-0018, all Accepted)

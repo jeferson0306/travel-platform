@@ -43,7 +43,7 @@ export const SERVICES: ServiceDef[] = [
     baseUrl: envUrl('VITE_BOOKING_HEALTH_URL', 'http://localhost:8082'),
     dependencies: [
       { match: 'MongoDB', label: 'MongoDB' },
-      { match: 'Reactive Messaging', label: 'Kafka' },
+      { match: 'Reactive Messaging', label: 'RabbitMQ' },
     ],
   },
   {
@@ -53,7 +53,7 @@ export const SERVICES: ServiceDef[] = [
     baseUrl: envUrl('VITE_FLIGHT_HEALTH_URL', 'http://localhost:18083'),
     dependencies: [
       { match: 'MongoDB', label: 'MongoDB' },
-      { match: 'Reactive Messaging', label: 'Kafka' },
+      { match: 'Reactive Messaging', label: 'RabbitMQ' },
     ],
   },
   {
@@ -63,7 +63,7 @@ export const SERVICES: ServiceDef[] = [
     baseUrl: envUrl('VITE_HOTEL_HEALTH_URL', 'http://localhost:8084'),
     dependencies: [
       { match: 'MongoDB', label: 'MongoDB' },
-      { match: 'Reactive Messaging', label: 'Kafka' },
+      { match: 'Reactive Messaging', label: 'RabbitMQ' },
     ],
   },
   {
@@ -73,7 +73,7 @@ export const SERVICES: ServiceDef[] = [
     baseUrl: envUrl('VITE_PAYMENT_HEALTH_URL', 'http://localhost:8085'),
     dependencies: [
       { match: 'MongoDB', label: 'MongoDB' },
-      { match: 'Reactive Messaging', label: 'Kafka' },
+      { match: 'Reactive Messaging', label: 'RabbitMQ' },
     ],
   },
   {
@@ -83,15 +83,15 @@ export const SERVICES: ServiceDef[] = [
     baseUrl: envUrl('VITE_NOTIFICATION_HEALTH_URL', 'http://localhost:8086'),
     dependencies: [
       { match: 'MongoDB', label: 'MongoDB' },
-      { match: 'Reactive Messaging', label: 'Kafka' },
+      { match: 'Reactive Messaging', label: 'RabbitMQ' },
     ],
   },
   {
     id: 'search',
     name: 'Search Service',
-    description: 'OpenSearch index, kept in sync via Kafka',
+    description: 'OpenSearch index, kept in sync via RabbitMQ',
     baseUrl: envUrl('VITE_SEARCH_HEALTH_URL', 'http://localhost:8087'),
-    dependencies: [{ match: 'Reactive Messaging', label: 'Kafka' }],
+    dependencies: [{ match: 'Reactive Messaging', label: 'RabbitMQ' }],
   },
   {
     id: 'assistant',

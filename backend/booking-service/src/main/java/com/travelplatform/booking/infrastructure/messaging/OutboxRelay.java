@@ -5,7 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import io.quarkus.scheduler.Scheduled;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Instant;
 import java.util.Date;
@@ -18,10 +18,11 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 import org.jboss.logging.Logger;
 
 /**
- * Polls the transactional outbox for unpublished events and sends each to its own Kafka topic (the
- * event's {@code eventType} - "booking-created", "booking-cancelled"), marking it published only
- * after a successful send. At-least-once delivery: a crash between send and mark-published
- * republishes on the next poll - see docs/adr/0007-transactional-outbox.md.
+ * Polls the transactional outbox for unpublished events and sends each with a routing key equal to
+ * the event's {@code eventType} ("booking-created", "booking-cancelled") on the "booking-events"
+ * topic exchange, marking it published only after a successful send. At-least-once delivery: a
+ * crash between send and mark-published republishes on the next poll - see
+ * docs/adr/0007-transactional-outbox.md.
  */
 @ApplicationScoped
 public class OutboxRelay {
@@ -52,7 +53,7 @@ public class OutboxRelay {
         var eventType = event.getString("eventType");
         var payload = event.getString("payload");
 
-        var metadata = OutgoingKafkaRecordMetadata.<String>builder().withTopic(eventType).build();
+        var metadata = new OutgoingRabbitMQMetadata.Builder().withRoutingKey(eventType).build();
         var message =
                 Message.of(payload)
                         .addMetadata(metadata)

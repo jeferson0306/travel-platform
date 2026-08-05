@@ -262,7 +262,7 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-sm text-ink-800 dark:text-sand-50/80 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Aerostay is a portfolio project by Jeferson Siqueira - nine Java/Quarkus
-            microservices, Kafka, MongoDB, Kubernetes.{' '}
+            microservices, RabbitMQ, MongoDB, Kubernetes.{' '}
             <a
               href="https://github.com/jeferson0306/travel-platform"
               className="font-medium text-pine-600 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"

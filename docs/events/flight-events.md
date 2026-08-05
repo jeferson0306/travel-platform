@@ -45,7 +45,7 @@ documented gap rather than an oversight, since the frontend doesn't query
 
 At-least-once, same transactional-outbox mechanism as every other service's
 events (ADR 0007) - `flight-service` writes its own `flights` + `outbox`
-collections in one MongoDB transaction, relayed to Kafka by its own
+collections in one MongoDB transaction, relayed to RabbitMQ by its own
 `OutboxRelay`.
 
 ## Failure story

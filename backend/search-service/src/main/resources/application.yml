@@ -20,7 +20,7 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
       # Tests use the in-memory connector (see %test below).
       enabled: false
@@ -35,28 +35,34 @@ search:
 
 mp:
   messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
     incoming:
       flight-created:
-        connector: smallrye-kafka
-        topic: flight-created
-        group.id: search-indexer
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: flight-events
+        queue:
+          name: flight-created.search-indexer
+        routing-keys: flight-created
       hotel-created:
-        connector: smallrye-kafka
-        topic: hotel-created
-        group.id: search-indexer
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: hotel-events
+        queue:
+          name: hotel-created.search-indexer
+        routing-keys: hotel-created
     outgoing:
       flight-created-dlq:
-        connector: smallrye-kafka
-        topic: flight-created.search-indexer.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: flight-created.search-indexer.dlq
       hotel-created-dlq:
-        connector: smallrye-kafka
-        topic: hotel-created.search-indexer.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: hotel-created.search-indexer.dlq
 
 "%dev":
   quarkus:
@@ -85,9 +91,10 @@ mp:
           connector: smallrye-in-memory
 
 "%prod":
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}
   search:
     opensearch:
       host: ${OPENSEARCH_HOST:opensearch}

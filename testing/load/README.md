@@ -28,7 +28,7 @@ measured, not estimated.
 
    # Log in again to get a token carrying the new role, then create a flight and hotel for real
    # through the gateway - this exercises the actual create-inventory path, not a Mongo insert,
-   # so flight-created/hotel-created still flow through Kafka into search-service exactly like a
+   # so flight-created/hotel-created still flow through RabbitMQ into search-service exactly like a
    # real request would.
    TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" \
      -d '{"email":"loadtest@example.com","password":"Sup3rSecret!"}' | jq -r .accessToken)
@@ -58,7 +58,7 @@ docker run --rm -i --network travel-platform \
   VUs. No auth, safe to push harder than this if you want to.
 - `booking-saga-load.js` - a full user journey (register, login, create a
   booking), which drives the entire choreography saga (booking → payment →
-  booking confirmation → notification, all via Kafka) for every iteration.
+  booking confirmation → notification, all via RabbitMQ) for every iteration.
   Kept to 5 VUs deliberately: each iteration also registers a brand-new user
   in identity-service, which is the actual bottleneck (bcrypt hashing is
   intentionally slow - see docs/adr/0006-rbac-roles.md), not booking
