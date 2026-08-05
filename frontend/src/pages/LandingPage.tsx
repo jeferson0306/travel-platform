@@ -90,11 +90,11 @@ export function LandingPage() {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-pine-500" />
             Live route: Lisbon &rarr; Sao Paulo from 589 EUR
           </p>
-          <h1 className="hero-title max-w-4xl text-6xl font-medium leading-[0.95] tracking-tight text-ink-950 sm:text-8xl">
+          <h1 className="hero-title max-w-4xl text-6xl font-medium leading-[0.95] tracking-tight text-ink-950 dark:text-sand-50 sm:text-8xl">
             Book flights and hotels
             <span className="block text-pine-600">without the runaround.</span>
           </h1>
-          <p className="hero-subtitle mt-8 max-w-lg text-lg leading-relaxed text-ink-800/80">
+          <p className="hero-subtitle mt-8 max-w-lg text-lg leading-relaxed text-ink-800/80 dark:text-sand-50/80">
             Search real inventory, book in a couple of clicks, get a confirmation the moment
             payment clears. No hidden steps, no dark patterns.
           </p>
@@ -102,11 +102,11 @@ export function LandingPage() {
           {/* Mini search widget - hits the real, public search API */}
           <form
             onSubmit={handleSearch}
-            className="hero-form shadow-elevated mt-12 flex max-w-xl flex-col gap-3 rounded-lg border border-ink-950/15 bg-white p-3 sm:flex-row sm:items-center"
+            className="hero-form shadow-elevated mt-12 flex max-w-xl flex-col gap-3 rounded-lg border border-ink-950/15 dark:border-sand-50/15 bg-white dark:bg-ink-900 p-3 sm:flex-row sm:items-center"
           >
             <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2">
               <label className="flex-1">
-                <span className="block text-xs font-medium uppercase tracking-wide text-ink-800/60">
+                <span className="block text-xs font-medium uppercase tracking-wide text-ink-800/60 dark:text-sand-50/60">
                   From
                 </span>
                 <input
@@ -114,12 +114,12 @@ export function LandingPage() {
                   onChange={(e) => setOrigin(e.target.value.toUpperCase())}
                   maxLength={3}
                   placeholder="LIS"
-                  className="w-full bg-transparent font-display text-lg text-ink-950 outline-none placeholder:text-ink-950/30"
+                  className="w-full bg-transparent font-display text-lg text-ink-950 dark:text-sand-50 outline-none placeholder:text-ink-950/30 dark:placeholder:text-sand-50/30"
                 />
               </label>
-              <ArrowRight size={16} className="shrink-0 text-ink-950/25" />
+              <ArrowRight size={16} className="shrink-0 text-ink-950/25 dark:text-sand-50/25" />
               <label className="flex-1">
-                <span className="block text-xs font-medium uppercase tracking-wide text-ink-800/60">
+                <span className="block text-xs font-medium uppercase tracking-wide text-ink-800/60 dark:text-sand-50/60">
                   To
                 </span>
                 <input
@@ -127,7 +127,7 @@ export function LandingPage() {
                   onChange={(e) => setDestination(e.target.value.toUpperCase())}
                   maxLength={3}
                   placeholder="GRU"
-                  className="w-full bg-transparent font-display text-lg text-ink-950 outline-none placeholder:text-ink-950/30"
+                  className="w-full bg-transparent font-display text-lg text-ink-950 dark:text-sand-50 outline-none placeholder:text-ink-950/30 dark:placeholder:text-sand-50/30"
                 />
               </label>
             </div>
@@ -152,7 +152,7 @@ export function LandingPage() {
               className="mt-6 flex max-w-xl flex-col gap-2"
             >
               {flights.length === 0 && (
-                <li className="rounded-xl border border-ink-950/10 bg-white/60 px-4 py-3 text-sm text-ink-800">
+                <li className="rounded-xl border border-ink-950/10 dark:border-sand-50/10 bg-white/60 dark:bg-ink-900/60 px-4 py-3 text-sm text-ink-800 dark:text-sand-50/80">
                   No flights found for that route right now - try LIS &rarr; GRU or explore below.
                 </li>
               )}
@@ -162,13 +162,13 @@ export function LandingPage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="flex items-center justify-between rounded-xl border border-ink-950/10 bg-white/80 px-4 py-3"
+                  className="flex items-center justify-between rounded-xl border border-ink-950/10 dark:border-sand-50/10 bg-white/80 dark:bg-ink-900/80 px-4 py-3"
                 >
-                  <span className="text-sm text-ink-900">
+                  <span className="text-sm text-ink-900 dark:text-sand-50">
                     {flight.origin} &rarr; {flight.destination} &middot; {flight.availableSeats}{' '}
                     seats left
                   </span>
-                  <span className="font-display text-lg text-ink-950">
+                  <span className="font-display text-lg text-ink-950 dark:text-sand-50">
                     {flight.priceAmount} {flight.priceCurrency}
                   </span>
                 </motion.li>
@@ -190,16 +190,16 @@ export function LandingPage() {
       <Airplane3DSection />
 
       {/* Stats - hairline-divided row, not a floating card, per the Editorial Grid rule set */}
-      <ScrollReveal className="rule-hairline border-b border-ink-950/10" stagger={0.12}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-ink-950/10 px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <ScrollReveal className="rule-hairline border-b border-ink-950/10 dark:border-sand-50/10" stagger={0.12}>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-ink-950/10 dark:divide-sand-50/10 px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {STATS.map((stat) => (
             <div key={stat.label} className="px-6 py-14 first:pl-0 last:pr-0 sm:text-center">
               <CountUp
                 value={stat.value}
                 suffix={stat.suffix}
-                className="font-display text-5xl tracking-tight text-ink-950 sm:text-6xl"
+                className="font-display text-5xl tracking-tight text-ink-950 dark:text-sand-50 sm:text-6xl"
               />
-              <p className="mt-3 text-sm uppercase tracking-wide text-ink-800/50">{stat.label}</p>
+              <p className="mt-3 text-sm uppercase tracking-wide text-ink-800/50 dark:text-sand-50/50">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -208,15 +208,15 @@ export function LandingPage() {
       {/* How it works */}
       <section className="mx-auto max-w-6xl px-6 py-28">
         <ScrollReveal className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="max-w-md text-4xl font-medium tracking-tight text-ink-950 sm:text-5xl">
+          <h2 className="max-w-md text-4xl font-medium tracking-tight text-ink-950 dark:text-sand-50 sm:text-5xl">
             How it works
           </h2>
-          <p className="max-w-sm text-sm text-ink-800/60">
+          <p className="max-w-sm text-sm text-ink-800/60 dark:text-sand-50/60">
             Three steps, no filler screens between them.
           </p>
         </ScrollReveal>
         <ScrollReveal
-          className="mt-14 grid divide-y divide-ink-950/10 border-t border-ink-950/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+          className="mt-14 grid divide-y divide-ink-950/10 dark:divide-sand-50/10 border-t border-ink-950/10 dark:border-sand-50/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
           stagger={0.12}
         >
           {HOW_IT_WORKS.map((item) => (
@@ -225,10 +225,10 @@ export function LandingPage() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sunset-500/10 text-sunset-600 transition group-hover:bg-sunset-500 group-hover:text-white">
                   <item.icon size={18} />
                 </span>
-                <span className="font-display text-sm text-ink-950/20">{item.step}</span>
+                <span className="font-display text-sm text-ink-950/20 dark:text-sand-50/20">{item.step}</span>
               </div>
-              <h3 className="mt-6 text-2xl font-medium tracking-tight text-ink-950">{item.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-ink-800/70">{item.body}</p>
+              <h3 className="mt-6 text-2xl font-medium tracking-tight text-ink-950 dark:text-sand-50">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-800/70 dark:text-sand-50/70">{item.body}</p>
             </div>
           ))}
         </ScrollReveal>
@@ -240,10 +240,10 @@ export function LandingPage() {
 
       {/* CTA */}
       <ScrollReveal className="rule-hairline mx-auto max-w-6xl px-6 py-28 text-center">
-        <h2 className="mx-auto max-w-2xl text-5xl font-medium tracking-tight text-ink-950 sm:text-6xl">
+        <h2 className="mx-auto max-w-2xl text-5xl font-medium tracking-tight text-ink-950 dark:text-sand-50 sm:text-6xl">
           Ready to see it work end to end?
         </h2>
-        <p className="mx-auto mt-5 max-w-lg text-ink-800/70">
+        <p className="mx-auto mt-5 max-w-lg text-ink-800/70 dark:text-sand-50/70">
           Create a free account and book a flight or hotel - the whole saga runs for real behind
           the scenes.
         </p>
@@ -258,8 +258,8 @@ export function LandingPage() {
         </motion.div>
       </ScrollReveal>
 
-      <footer className="border-t border-ink-950/10 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-sm text-ink-800 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="border-t border-ink-950/10 dark:border-sand-50/10 py-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-sm text-ink-800 dark:text-sand-50/80 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Aerostay is a portfolio project by Jeferson Siqueira - nine Java/Quarkus
             microservices, Kafka, MongoDB, Kubernetes.{' '}

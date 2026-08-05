@@ -37,7 +37,7 @@ export default function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <Suspense fallback={<div className="min-h-screen bg-sand-50" />}>
+        <Suspense fallback={<div className="min-h-screen bg-sand-50 dark:bg-ink-950" />}>
           <Routes location={location}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/status" element={<StatusPage />} />

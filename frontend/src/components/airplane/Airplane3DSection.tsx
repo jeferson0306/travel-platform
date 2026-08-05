@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, PerspectiveCamera, Environment } from '@react-three/drei';
+import { OrbitControls, ContactShadows, PerspectiveCamera, Environment, Lightformer } from '@react-three/drei';
 import type { Group } from 'three';
 import { AirplaneModel } from './AirplaneModel';
 import { gsap, ScrollTrigger } from '../../lib/gsap';
@@ -88,11 +88,18 @@ export default function Airplane3DSection() {
         {/* Subtle rim light from behind to separate the plane's silhouette from the dark
             background - branded pine tone, low intensity, not a glowing neon edge. */}
         <pointLight position={[-2, 1, -4]} intensity={5} color="#2c8577" distance={9} decay={2} />
-        {/* Environment reflections are what actually sell the clearcoat paint materials below -
-            without one, clearcoat has nothing to reflect and reads flat/plasticky no matter how
-            the material properties are tuned. `background={false}` keeps the scene's own dark
-            backdrop instead of replacing it with the environment's sky. */}
-        <Environment preset="city" background={false} environmentIntensity={0.6} />
+        {/* Environment reflections are what sell the clearcoat paint materials below - without
+            one, clearcoat has nothing to reflect and reads flat/plasticky. A `preset` (e.g.
+            "city") downloads an HDR from a remote CDN and runs an expensive PMREM pass to
+            process it - that combination crashed the WebGL context entirely on real hardware
+            (confirmed via "THREE.WebGLRenderer: Context Lost" in the console, canvas going
+            blank). These <Lightformer> children generate a small environment map procedurally,
+            entirely on-GPU, no network fetch - same reflective effect, none of the crash risk. */}
+        <Environment resolution={64} background={false}>
+          <Lightformer intensity={2} color="#fbf7f1" position={[0, 4, -4]} scale={[6, 3, 1]} />
+          <Lightformer intensity={1} color="#4aa494" position={[-4, 1, 2]} scale={[3, 2, 1]} />
+          <Lightformer intensity={1.2} color="#ff8a66" position={[4, -1, 3]} scale={[3, 2, 1]} />
+        </Environment>
         <ScrollRig>
           <AirplaneModel idle={!reduced} />
         </ScrollRig>
