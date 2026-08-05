@@ -86,13 +86,13 @@ export function LandingPage() {
         <div className="hero-glow pointer-events-none absolute -right-24 -top-24 h-[28rem] w-[28rem] rounded-full bg-sunset-400/25 blur-3xl" />
         <div className="hero-glow pointer-events-none absolute -left-32 top-52 h-80 w-80 rounded-full bg-pine-400/25 blur-3xl" />
         <div className="bg-grain relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-          <p className="hero-badge mb-6 inline-flex items-center gap-2 border-b border-pine-600/30 pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-pine-600">
+          <p className="hero-badge mb-6 inline-flex items-center gap-2 border-b border-pine-600/30 pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-pine-600 dark:text-pine-400">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-pine-500" />
             Live route: Lisbon &rarr; Sao Paulo from 589 EUR
           </p>
           <h1 className="hero-title max-w-4xl text-6xl font-medium leading-[0.95] tracking-tight text-ink-950 dark:text-sand-50 sm:text-8xl">
             Book flights and hotels
-            <span className="block text-pine-600">without the runaround.</span>
+            <span className="block text-pine-600 dark:text-pine-400">without the runaround.</span>
           </h1>
           <p className="hero-subtitle mt-8 max-w-lg text-lg leading-relaxed text-ink-800/80 dark:text-sand-50/80">
             Search real inventory, book in a couple of clicks, get a confirmation the moment
@@ -176,7 +176,7 @@ export function LandingPage() {
               {flights.length > 0 && (
                 <Link
                   to="/search"
-                  className="mt-2 inline-flex w-fit items-center gap-1 text-sm font-semibold text-pine-600 underline decoration-pine-600/40 underline-offset-4 hover:text-pine-500"
+                  className="mt-2 inline-flex w-fit items-center gap-1 text-sm font-semibold text-pine-600 dark:text-pine-400 underline decoration-pine-600/40 underline-offset-4 hover:text-pine-500"
                 >
                   Log in to book this flight <ArrowRight size={14} />
                 </Link>
@@ -222,7 +222,7 @@ export function LandingPage() {
           {HOW_IT_WORKS.map((item) => (
             <div key={item.step} className="group px-1 py-8 transition sm:px-8 sm:first:pl-0 sm:last:pr-0">
               <div className="flex items-center justify-between">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sunset-500/10 text-sunset-600 transition group-hover:bg-sunset-500 group-hover:text-white">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sunset-500/10 text-sunset-600 dark:text-sunset-400 transition group-hover:bg-sunset-500 group-hover:text-white">
                   <item.icon size={18} />
                 </span>
                 <span className="font-display text-sm text-ink-950/20 dark:text-sand-50/20">{item.step}</span>
@@ -265,14 +265,14 @@ export function LandingPage() {
             microservices, RabbitMQ, MongoDB, Kubernetes.{' '}
             <a
               href="https://github.com/jeferson0306/travel-platform"
-              className="font-medium text-pine-600 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
+              className="font-medium text-pine-600 dark:text-pine-400 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
             >
               See the source & architecture docs
             </a>
             {' - or '}
             <Link
               to="/status"
-              className="font-medium text-pine-600 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
+              className="font-medium text-pine-600 dark:text-pine-400 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
             >
               watch every service's health live
             </Link>

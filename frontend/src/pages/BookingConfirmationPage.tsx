@@ -23,7 +23,7 @@ export function BookingConfirmationPage() {
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 15 }}
-          className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pine-600/10 text-pine-600"
+          className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pine-600/10 text-pine-600 dark:text-pine-400"
         >
           <motion.span
             initial={{ opacity: 0.5, scale: 1 }}
@@ -87,7 +87,7 @@ export function BookingConfirmationPage() {
             exactly as documented in{' '}
             <a
               href="https://github.com/jeferson0306/travel-platform/blob/main/docs/adr/0010-payment-saga.md"
-              className="text-pine-600 underline underline-offset-2 hover:text-pine-500"
+              className="text-pine-600 dark:text-pine-400 underline underline-offset-2 hover:text-pine-500"
             >
               ADR 0010
             </a>

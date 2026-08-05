@@ -15,8 +15,8 @@ import { SERVICES } from '../config/services';
 import { useServiceHealth, type HealthState } from '../hooks/useServiceHealth';
 
 const STATE_STYLES: Record<HealthState, { dot: string; text: string; label: string }> = {
-  up: { dot: 'bg-pine-500', text: 'text-pine-600', label: 'Up' },
-  down: { dot: 'bg-sunset-500', text: 'text-sunset-600', label: 'Unreachable' },
+  up: { dot: 'bg-pine-500', text: 'text-pine-600 dark:text-pine-400', label: 'Up' },
+  down: { dot: 'bg-sunset-500', text: 'text-sunset-600 dark:text-sunset-400', label: 'Unreachable' },
   checking: { dot: 'bg-ink-950/30', text: 'text-ink-800/60 dark:text-sand-50/60', label: 'Checking...' },
 };
 
@@ -126,7 +126,7 @@ export default function StatusPage() {
       <section className="bg-grain relative overflow-hidden border-b border-ink-950/10 dark:border-sand-50/10">
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-pine-400/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-6 py-16">
-          <p className="text-xs font-medium uppercase tracking-widest text-pine-600">
+          <p className="text-xs font-medium uppercase tracking-widest text-pine-600 dark:text-pine-400">
             Live system status
           </p>
           <h1 className="mt-2 font-display text-4xl text-ink-950 dark:text-sand-50 sm:text-5xl">
@@ -163,7 +163,7 @@ export default function StatusPage() {
             {PIPELINE_STAGES.map((stage, i) => (
               <div key={stage.title} className="flex items-center lg:flex-1">
                 <div className="shadow-elevated flex-1 rounded-xl border border-ink-950/10 dark:border-sand-50/10 bg-white/70 dark:bg-ink-900/70 p-5">
-                  <stage.icon size={20} className="text-pine-600" />
+                  <stage.icon size={20} className="text-pine-600 dark:text-pine-400" />
                   <h3 className="mt-3 font-display text-sm font-semibold text-ink-950 dark:text-sand-50">
                     {stage.title}
                   </h3>
@@ -208,7 +208,7 @@ export default function StatusPage() {
           Full write-up:{' '}
           <a
             href="https://github.com/jeferson0306/travel-platform"
-            className="font-medium text-pine-600 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
+            className="font-medium text-pine-600 dark:text-pine-400 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
           >
             source, ADRs and architecture docs
           </a>

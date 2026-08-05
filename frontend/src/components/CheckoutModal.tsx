@@ -66,7 +66,7 @@ export function CheckoutModal({ summary, submitting, onCancel, onConfirm }: Chec
             className="shadow-popover w-full max-w-md rounded-2xl bg-white p-6"
           >
             <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
-              <CreditCard size={19} className="text-sunset-600" />
+              <CreditCard size={19} className="text-sunset-600 dark:text-sunset-400" />
               Confirm & pay
             </h2>
             <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-950/[0.03] px-4 py-3">

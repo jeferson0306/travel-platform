@@ -38,7 +38,7 @@ export function LoginPage() {
   return (
     <AuthLayout title="Welcome back">
       {justRegistered && (
-        <p className="mt-3 rounded-lg bg-pine-600/10 px-3 py-2 text-sm text-pine-600">
+        <p className="mt-3 rounded-lg bg-pine-600/10 px-3 py-2 text-sm text-pine-600 dark:text-pine-400">
           Account created - log in to continue.
         </p>
       )}
@@ -76,7 +76,7 @@ export function LoginPage() {
       </form>
       <p className="mt-6 text-sm text-ink-800">
         No account yet?{' '}
-        <Link to="/register" className="font-medium text-pine-600 hover:text-pine-500">
+        <Link to="/register" className="font-medium text-pine-600 dark:text-pine-400 hover:text-pine-500">
           Register
         </Link>
       </p>

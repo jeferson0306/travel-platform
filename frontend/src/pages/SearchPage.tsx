@@ -69,7 +69,7 @@ function EmptyState({ icon: Icon, text }: { icon: typeof SearchX; text: string }
   return (
     <li className="bg-grain flex flex-col items-center gap-3 overflow-hidden rounded-xl bg-ink-950/[0.03] px-4 py-10 text-center text-sm text-ink-800/60">
       <span className="from-pine-400/25 to-sunset-400/25 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
-        <Icon size={24} className="text-pine-600" />
+        <Icon size={24} className="text-pine-600 dark:text-pine-400" />
       </span>
       {text}
     </li>
@@ -192,7 +192,7 @@ export function SearchPage() {
 
         <section className="shadow-elevated mt-10 rounded-2xl border border-ink-950/10 bg-white/70 p-6">
           <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
-            <PlaneTakeoff size={19} className="text-sunset-600" />
+            <PlaneTakeoff size={19} className="text-sunset-600 dark:text-sunset-400" />
             Flights
           </h2>
           <form onSubmit={searchFlights} className="mt-4 flex flex-wrap items-end gap-3">
@@ -340,7 +340,7 @@ export function SearchPage() {
 
         <section className="shadow-elevated mt-6 rounded-2xl border border-ink-950/10 bg-white/70 p-6">
           <h2 className="flex items-center gap-2 text-xl font-medium text-ink-950">
-            <BedDouble size={19} className="text-pine-600" />
+            <BedDouble size={19} className="text-pine-600 dark:text-pine-400" />
             Hotels
           </h2>
           <form onSubmit={searchHotels} className="mt-4 flex flex-wrap items-end gap-3">

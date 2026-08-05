@@ -7,7 +7,7 @@ import { SiteHeader } from '../components/SiteHeader';
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
   PENDING: 'bg-amber-100 text-amber-700',
-  CONFIRMED: 'bg-pine-600/10 text-pine-600',
+  CONFIRMED: 'bg-pine-600/10 text-pine-600 dark:text-pine-400',
   CANCELLED: 'bg-red-100 text-red-600',
 };
 
@@ -46,11 +46,11 @@ export function MyBookingsPage() {
         {bookings !== null && bookings.length === 0 && (
           <div className="bg-grain mt-6 flex flex-col items-center gap-3 overflow-hidden rounded-xl bg-ink-950/[0.03] px-4 py-10 text-center text-sm text-ink-800/60">
             <span className="from-pine-400/25 to-sunset-400/25 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
-              <Inbox size={24} className="text-pine-600" />
+              <Inbox size={24} className="text-pine-600 dark:text-pine-400" />
             </span>
             <p>
               No bookings yet -{' '}
-              <a href="/search" className="text-pine-600 underline underline-offset-2">
+              <a href="/search" className="text-pine-600 dark:text-pine-400 underline underline-offset-2">
                 search flights or hotels
               </a>{' '}
               to make your first one.
