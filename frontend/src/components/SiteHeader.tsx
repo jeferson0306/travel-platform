@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plane, Search, BookText, LogOut } from 'lucide-react';
+import { Plane, Search, BookText, LogOut, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const tap = { whileHover: { scale: 1.03, y: -1 }, whileTap: { scale: 0.96 } };
@@ -20,6 +20,15 @@ export function SiteHeader() {
           Aerostay
         </Link>
         <nav className="flex items-center gap-2">
+          <motion.div {...tap} transition={spring}>
+            <Link
+              to="/status"
+              className="hidden items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-ink-900 hover:bg-ink-950/5 sm:flex"
+            >
+              <Activity size={14} />
+              System status
+            </Link>
+          </motion.div>
           {token ? (
             <>
               <span className="hidden pr-2 text-sm text-ink-800 sm:inline">{email}</span>

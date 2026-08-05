@@ -3,6 +3,10 @@ quarkus:
     name: hotel-service
   http:
     port: 8084
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:5173}
+      methods: GET,OPTIONS
   mongodb:
     database: hotel
   smallrye-openapi:

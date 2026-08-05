@@ -3,6 +3,10 @@ quarkus:
     name: assistant-service
   http:
     port: 8088
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:5173}
+      methods: GET,OPTIONS
   smallrye-openapi:
     path: /openapi
   smallrye-health:

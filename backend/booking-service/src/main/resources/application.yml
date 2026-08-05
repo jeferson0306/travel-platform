@@ -3,6 +3,10 @@ quarkus:
     name: booking-service
   http:
     port: 8082
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:http://localhost:5173}
+      methods: GET,OPTIONS
   mongodb:
     database: booking
   smallrye-openapi:

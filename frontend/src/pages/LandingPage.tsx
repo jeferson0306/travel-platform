@@ -298,6 +298,13 @@ export function LandingPage() {
             >
               See the source & architecture docs
             </a>
+            {' - or '}
+            <Link
+              to="/status"
+              className="font-medium text-pine-600 underline decoration-pine-600/30 underline-offset-4 hover:text-pine-500"
+            >
+              watch every service's health live
+            </Link>
             .
           </p>
         </div>

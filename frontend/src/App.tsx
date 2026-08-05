@@ -16,6 +16,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // breaks its hooks ("Invalid hook call" inside <Canvas>, confirmed via the .vite/deps output and
 // component stack). Route-level lazy is the well-trodden path Vite's scanner handles correctly.
 const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
+const StatusPage = lazy(() => import('./pages/StatusPage'));
 
 export default function App() {
   const location = useLocation();
@@ -39,6 +40,7 @@ export default function App() {
         <Suspense fallback={<div className="min-h-screen bg-sand-50" />}>
           <Routes location={location}>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/status" element={<StatusPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
