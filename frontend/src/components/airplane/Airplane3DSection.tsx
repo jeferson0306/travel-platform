@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, ContactShadows, PerspectiveCamera, Sparkles } from '@react-three/drei';
 import type { Group } from 'three';
 import { AirplaneModel } from './AirplaneModel';
 import { gsap, ScrollTrigger } from '../../lib/gsap';
@@ -9,10 +9,12 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Scroll-driven entrance: the plane flies in from the side and settles into view as this
- * section crosses the viewport, then stays draggable (OrbitControls) for the user to spin it
- * and look at it from any angle - the "ir e sair" (fly in/out), "visualizar o avião mesmo"
- * moment. Skips the scroll choreography (settles immediately) under prefers-reduced-motion. */
+/** Scroll-driven entrance: the plane banks in from far off-screen, small and rotated like it's
+ * approaching from a distance, growing and leveling out as this section crosses the viewport -
+ * then stays draggable (OrbitControls) for the user to spin it and look at it from any angle.
+ * A single gsap.timeline (not separate fromTo calls) so position/rotation/scale stay in lockstep
+ * on the same scrub, and the bank overshoots slightly past level before settling for a bit of
+ * life instead of a flat linear slide. Skips the choreography under prefers-reduced-motion. */
 function ScrollRig({ children }: { children: React.ReactNode }) {
   const rigRef = useRef<Group>(null);
   const sectionEl = typeof document !== 'undefined' ? document.getElementById('airplane-3d-section') : null;
@@ -22,35 +24,25 @@ function ScrollRig({ children }: { children: React.ReactNode }) {
     if (prefersReducedMotion()) return;
 
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        rigRef.current!.position,
-        { x: -3.5, z: -2 },
-        {
-          x: 0,
-          z: 0,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: sectionEl,
-            start: 'top 80%',
-            end: 'top 30%',
-            scrub: 0.6,
-          },
+      const rig = rigRef.current!;
+      gsap.set(rig.position, { x: -5, y: 0.6, z: -3.5 });
+      gsap.set(rig.rotation, { y: -1.3, z: 0.5 });
+      gsap.set(rig.scale, { x: 0.55, y: 0.55, z: 0.55 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionEl,
+          start: 'top 85%',
+          end: 'top 25%',
+          scrub: 0.7,
         },
-      );
-      gsap.fromTo(
-        rigRef.current!.rotation,
-        { y: -1.2 },
-        {
-          y: 0,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: sectionEl,
-            start: 'top 80%',
-            end: 'top 30%',
-            scrub: 0.6,
-          },
-        },
-      );
+      });
+
+      tl.to(rig.position, { x: 0.4, y: 0.6, z: 0, ease: 'power1.in' }, 0)
+        .to(rig.position, { x: 0, y: 0, z: 0, ease: 'power2.out' }, 0.55)
+        .to(rig.rotation, { y: -0.15, z: -0.12, ease: 'power1.in' }, 0)
+        .to(rig.rotation, { y: 0, z: 0, ease: 'back.out(1.4)' }, 0.55)
+        .to(rig.scale, { x: 1, y: 1, z: 1, ease: 'power1.out' }, 0);
     });
     return () => ctx.revert();
   }, [sectionEl]);
@@ -84,15 +76,18 @@ export default function Airplane3DSection() {
       </div>
       <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true }}>
         <PerspectiveCamera makeDefault position={[0, 0.6, 6.5]} fov={38} />
-        <ambientLight intensity={0.5} />
+        <ambientLight intensity={0.45} />
         <directionalLight
           position={[4, 5, 3]}
-          intensity={1.4}
+          intensity={1.5}
           color="#ff8a66"
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
-        <directionalLight position={[-4, 2, -3]} intensity={0.5} color="#4aa494" />
+        <directionalLight position={[-4, 2, -3]} intensity={0.55} color="#4aa494" />
+        {/* Cool rim light from behind to separate the plane's silhouette from the dark background */}
+        <pointLight position={[-2, 1, -4]} intensity={12} color="#7fd8c8" distance={9} decay={2} />
+        <Sparkles count={60} scale={[10, 4, 6]} size={2} speed={0.15} opacity={0.25} color="#ff8a66" />
         <ScrollRig>
           <AirplaneModel idle={!reduced} />
         </ScrollRig>
