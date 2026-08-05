@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, PerspectiveCamera, Sparkles } from '@react-three/drei';
+import { OrbitControls, ContactShadows, PerspectiveCamera, Environment } from '@react-three/drei';
 import type { Group } from 'three';
 import { AirplaneModel } from './AirplaneModel';
 import { gsap, ScrollTrigger } from '../../lib/gsap';
@@ -85,9 +85,14 @@ export default function Airplane3DSection() {
           shadow-mapSize={[1024, 1024]}
         />
         <directionalLight position={[-4, 2, -3]} intensity={0.55} color="#4aa494" />
-        {/* Cool rim light from behind to separate the plane's silhouette from the dark background */}
-        <pointLight position={[-2, 1, -4]} intensity={12} color="#7fd8c8" distance={9} decay={2} />
-        <Sparkles count={60} scale={[10, 4, 6]} size={2} speed={0.15} opacity={0.25} color="#ff8a66" />
+        {/* Subtle rim light from behind to separate the plane's silhouette from the dark
+            background - branded pine tone, low intensity, not a glowing neon edge. */}
+        <pointLight position={[-2, 1, -4]} intensity={5} color="#2c8577" distance={9} decay={2} />
+        {/* Environment reflections are what actually sell the clearcoat paint materials below -
+            without one, clearcoat has nothing to reflect and reads flat/plasticky no matter how
+            the material properties are tuned. `background={false}` keeps the scene's own dark
+            backdrop instead of replacing it with the environment's sky. */}
+        <Environment preset="city" background={false} environmentIntensity={0.6} />
         <ScrollRig>
           <AirplaneModel idle={!reduced} />
         </ScrollRig>

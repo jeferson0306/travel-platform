@@ -38,14 +38,59 @@ export function AirplaneModel({ idle = true }: { idle?: boolean }) {
     group.current.rotation.x = Math.sin(t * 0.35 + 1.4) * 0.012;
   });
 
+  {/* Physical (clearcoated) materials instead of meshStandardMaterial - aircraft paint is a
+      glossy lacquer over metal, not a uniformly metallic surface, so a thin clearcoat layer on
+      top of a low-metalness base reads far closer to real paint than cranking up `metalness`
+      ever does. Combined with <Environment> in Airplane3DSection, this is what actually fixes
+      the flat/plasticky "primitive geometry demo" look. */}
   const bodyMaterial = (
-    <meshStandardMaterial color="#fbf7f1" metalness={0.4} roughness={0.28} />
+    <meshPhysicalMaterial
+      color="#fbf7f1"
+      metalness={0.1}
+      roughness={0.32}
+      clearcoat={1}
+      clearcoatRoughness={0.12}
+      envMapIntensity={1.1}
+    />
   );
-  const bellyMaterial = <meshStandardMaterial color="#e8ddc9" metalness={0.35} roughness={0.35} />;
-  const accentMaterial = <meshStandardMaterial color="#ff6b4a" metalness={0.3} roughness={0.4} />;
-  const darkMaterial = <meshStandardMaterial color="#173a3f" metalness={0.55} roughness={0.28} />;
+  const bellyMaterial = (
+    <meshPhysicalMaterial
+      color="#dfd3bc"
+      metalness={0.1}
+      roughness={0.4}
+      clearcoat={0.6}
+      clearcoatRoughness={0.2}
+      envMapIntensity={0.9}
+    />
+  );
+  const accentMaterial = (
+    <meshPhysicalMaterial
+      color="#ff6b4a"
+      metalness={0.15}
+      roughness={0.3}
+      clearcoat={1}
+      clearcoatRoughness={0.1}
+      envMapIntensity={1.2}
+    />
+  );
+  const darkMaterial = (
+    <meshPhysicalMaterial
+      color="#173a3f"
+      metalness={0.75}
+      roughness={0.32}
+      clearcoat={0.4}
+      envMapIntensity={1.3}
+    />
+  );
   const windowMaterial = (
-    <meshStandardMaterial color="#0b1b1e" metalness={0.1} roughness={0.2} emissive="#173a3f" emissiveIntensity={0.15} />
+    <meshPhysicalMaterial
+      color="#050e10"
+      metalness={0.2}
+      roughness={0.05}
+      envMapIntensity={1.6}
+      emissive="#0d2124"
+      emissiveIntensity={0.2}
+    />
   );
 
   const windowCount = 11;
@@ -54,13 +99,13 @@ export function AirplaneModel({ idle = true }: { idle?: boolean }) {
     <group ref={group} rotation={[0, Math.PI * 0.15, 0]}>
       {/* Fuselage - single revolved profile, nose tip at +x, tail tip at -x */}
       <mesh rotation={[0, 0, -Math.PI / 2]} castShadow receiveShadow>
-        <latheGeometry args={[fuselagePoints(), 28]} />
+        <latheGeometry args={[fuselagePoints(), 48]} />
         {bodyMaterial}
       </mesh>
 
       {/* Darker belly wedge (bottom half only) for a two-tone livery read */}
       <mesh position={[0, -0.02, 0]} rotation={[0, 0, -Math.PI / 2 + Math.PI]} scale={[1, 0.985, 1]}>
-        <latheGeometry args={[fuselagePoints(), 28, Math.PI, Math.PI]} />
+        <latheGeometry args={[fuselagePoints(), 48, Math.PI, Math.PI]} />
         {bellyMaterial}
       </mesh>
 

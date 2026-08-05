@@ -1,24 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, CreditCard, MailCheck, MapPin, ArrowRight } from 'lucide-react';
+import { Search, CreditCard, MailCheck, ArrowRight } from 'lucide-react';
 import { SiteHeader } from '../components/SiteHeader';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { CountUp } from '../components/CountUp';
+import { DestinationsGallery } from '../components/DestinationsGallery';
 import { api, friendlyErrorMessage, type Flight } from '../api/client';
 import { gsap } from '../lib/gsap';
 // Static import, not React.lazy - LandingPage itself is already the lazy route boundary (see
 // App.tsx). A nested lazy() one level down here is what caused Vite's dev dependency scanner to
 // discover three.js/@react-three late and double-bundle it (see App.tsx's comment).
 import Airplane3DSection from '../components/airplane/Airplane3DSection';
-
-const FEATURED_DESTINATIONS = [
-  { city: 'Lisbon', country: 'Portugal', blurb: 'Pastel facades, river light, tram bells.' },
-  { city: 'Porto', country: 'Portugal', blurb: 'Port wine cellars and a bridge by Eiffel.' },
-  { city: 'Sao Paulo', country: 'Brazil', blurb: 'Skyline, food scene, non-stop energy.' },
-  { city: 'New York', country: 'USA', blurb: 'The city that never sits down.' },
-  { city: 'Madrid', country: 'Spain', blurb: 'Late dinners, wide boulevards, Prado art.' },
-];
 
 const HOW_IT_WORKS = [
   {
@@ -92,15 +85,16 @@ export function LandingPage() {
       <section ref={heroRef} className="relative overflow-hidden">
         <div className="hero-glow pointer-events-none absolute -right-24 -top-24 h-[28rem] w-[28rem] rounded-full bg-sunset-400/25 blur-3xl" />
         <div className="hero-glow pointer-events-none absolute -left-32 top-52 h-80 w-80 rounded-full bg-pine-400/25 blur-3xl" />
-        <div className="bg-grain relative mx-auto max-w-6xl px-6 py-20 sm:py-28">
-          <p className="hero-badge mb-4 inline-flex items-center gap-2 rounded-full bg-pine-600/10 px-4 py-1.5 text-sm font-medium text-pine-600">
+        <div className="bg-grain relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+          <p className="hero-badge mb-6 inline-flex items-center gap-2 border-b border-pine-600/30 pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-pine-600">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-pine-500" />
-            One route, right now: Lisbon to Sao Paulo from 589 EUR
+            Live route: Lisbon &rarr; Sao Paulo from 589 EUR
           </p>
-          <h1 className="hero-title max-w-3xl text-5xl font-medium leading-[1.05] text-ink-950 sm:text-6xl">
-            Book flights and hotels without the runaround.
+          <h1 className="hero-title max-w-4xl text-6xl font-medium leading-[0.95] tracking-tight text-ink-950 sm:text-8xl">
+            Book flights and hotels
+            <span className="block text-pine-600">without the runaround.</span>
           </h1>
-          <p className="hero-subtitle mt-6 max-w-xl text-lg text-ink-800">
+          <p className="hero-subtitle mt-8 max-w-lg text-lg leading-relaxed text-ink-800/80">
             Search real inventory, book in a couple of clicks, get a confirmation the moment
             payment clears. No hidden steps, no dark patterns.
           </p>
@@ -108,7 +102,7 @@ export function LandingPage() {
           {/* Mini search widget - hits the real, public search API */}
           <form
             onSubmit={handleSearch}
-            className="hero-form shadow-elevated mt-10 flex max-w-xl flex-col gap-3 rounded-2xl border border-ink-950/10 bg-white/85 p-3 backdrop-blur sm:flex-row sm:items-center"
+            className="hero-form shadow-elevated mt-12 flex max-w-xl flex-col gap-3 rounded-lg border border-ink-950/15 bg-white p-3 sm:flex-row sm:items-center"
           >
             <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2">
               <label className="flex-1">
@@ -195,88 +189,65 @@ export function LandingPage() {
       {/* 3D airplane - draggable, flies into view on scroll */}
       <Airplane3DSection />
 
-      {/* Stats */}
-      <ScrollReveal className="border-y border-ink-950/10 bg-white/50" stagger={0.12}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-14 sm:grid-cols-3">
+      {/* Stats - hairline-divided row, not a floating card, per the Editorial Grid rule set */}
+      <ScrollReveal className="rule-hairline border-b border-ink-950/10" stagger={0.12}>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-ink-950/10 px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
+            <div key={stat.label} className="px-6 py-14 first:pl-0 last:pr-0 sm:text-center">
               <CountUp
                 value={stat.value}
                 suffix={stat.suffix}
-                className="font-display text-4xl text-ink-950 sm:text-5xl"
+                className="font-display text-5xl tracking-tight text-ink-950 sm:text-6xl"
               />
-              <p className="mt-2 text-sm text-ink-800/60">{stat.label}</p>
+              <p className="mt-3 text-sm uppercase tracking-wide text-ink-800/50">{stat.label}</p>
             </div>
           ))}
         </div>
       </ScrollReveal>
 
       {/* How it works */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <ScrollReveal>
-          <h2 className="text-3xl font-medium text-ink-950">How it works</h2>
+      <section className="mx-auto max-w-6xl px-6 py-28">
+        <ScrollReveal className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="max-w-md text-4xl font-medium tracking-tight text-ink-950 sm:text-5xl">
+            How it works
+          </h2>
+          <p className="max-w-sm text-sm text-ink-800/60">
+            Three steps, no filler screens between them.
+          </p>
         </ScrollReveal>
-        <ScrollReveal className="mt-10 grid gap-6 sm:grid-cols-3" stagger={0.12}>
+        <ScrollReveal
+          className="mt-14 grid divide-y divide-ink-950/10 border-t border-ink-950/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+          stagger={0.12}
+        >
           {HOW_IT_WORKS.map((item) => (
-            <div
-              key={item.step}
-              className="shadow-elevated rounded-2xl border border-ink-950/10 bg-white/70 p-6 transition hover:-translate-y-1 hover:border-pine-500/30"
-            >
+            <div key={item.step} className="group px-1 py-8 transition sm:px-8 sm:first:pl-0 sm:last:pr-0">
               <div className="flex items-center justify-between">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sunset-500/10 text-sunset-600">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sunset-500/10 text-sunset-600 transition group-hover:bg-sunset-500 group-hover:text-white">
                   <item.icon size={18} />
                 </span>
                 <span className="font-display text-sm text-ink-950/20">{item.step}</span>
               </div>
-              <h3 className="mt-4 text-xl font-medium text-ink-950">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-800">{item.body}</p>
+              <h3 className="mt-6 text-2xl font-medium tracking-tight text-ink-950">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-800/70">{item.body}</p>
             </div>
           ))}
         </ScrollReveal>
       </section>
 
-      {/* Featured destinations */}
-      <section className="bg-grain bg-ink-950 py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <ScrollReveal>
-            <h2 className="text-3xl font-medium text-sand-50">Popular right now</h2>
-            <p className="mt-2 text-sm text-sand-50/60">
-              Illustrative destinations from this demo's seeded inventory.
-            </p>
-          </ScrollReveal>
-          <ScrollReveal className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" stagger={0.08}>
-            {FEATURED_DESTINATIONS.map((dest, i) => (
-              <motion.div
-                key={dest.city}
-                whileHover={{ y: -4 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="group relative overflow-hidden rounded-2xl border border-sand-50/10 p-6"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${170 + i * 24} 35% 16%), hsl(${170 + i * 24} 45% 10%))`,
-                }}
-              >
-                <div className="flex items-center gap-1.5 text-sand-50/50">
-                  <MapPin size={13} />
-                  <p className="text-xs">{dest.country}</p>
-                </div>
-                <h3 className="mt-2 font-display text-2xl text-sand-50">{dest.city}</h3>
-                <p className="mt-3 text-sm text-sand-50/70">{dest.blurb}</p>
-              </motion.div>
-            ))}
-          </ScrollReveal>
-        </div>
-      </section>
+      {/* Featured destinations - horizontal scroll pinned to vertical scroll (the "premium
+          travel site" signature move) instead of a static grid. */}
+      <DestinationsGallery />
 
       {/* CTA */}
-      <ScrollReveal className="mx-auto max-w-6xl px-6 py-24 text-center">
-        <h2 className="mx-auto max-w-2xl text-4xl font-medium text-ink-950">
+      <ScrollReveal className="rule-hairline mx-auto max-w-6xl px-6 py-28 text-center">
+        <h2 className="mx-auto max-w-2xl text-5xl font-medium tracking-tight text-ink-950 sm:text-6xl">
           Ready to see it work end to end?
         </h2>
-        <p className="mx-auto mt-4 max-w-lg text-ink-800">
+        <p className="mx-auto mt-5 max-w-lg text-ink-800/70">
           Create a free account and book a flight or hotel - the whole saga runs for real behind
           the scenes.
         </p>
-        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-8 inline-block">
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-10 inline-block">
           <Link
             to="/register"
             className="inline-flex items-center gap-2 rounded-full bg-sunset-500 px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-sunset-500/25 hover:bg-sunset-600"
