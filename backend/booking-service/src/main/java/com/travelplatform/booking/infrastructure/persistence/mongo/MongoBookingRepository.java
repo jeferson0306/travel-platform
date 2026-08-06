@@ -6,10 +6,14 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Sorts;
 import com.travelplatform.booking.application.port.out.BookingRepository;
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
+import com.travelplatform.booking.domain.booking.TravelerId;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -66,5 +70,13 @@ public class MongoBookingRepository implements BookingRepository {
     public Optional<Booking> findById(BookingId id) {
         return Optional.ofNullable(bookings.find(Filters.eq("_id", id.value().toString())).first())
                 .map(BookingDocumentMapper::toDomain);
+    }
+
+    @Override
+    public List<Booking> findByTravelerId(TravelerId travelerId) {
+        return bookings.find(Filters.eq("travelerId", travelerId.value().toString()))
+                .sort(Sorts.descending("createdAt"))
+                .map(BookingDocumentMapper::toDomain)
+                .into(new ArrayList<>());
     }
 }

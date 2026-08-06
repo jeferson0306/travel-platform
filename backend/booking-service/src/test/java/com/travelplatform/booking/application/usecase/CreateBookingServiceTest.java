@@ -44,7 +44,29 @@ class CreateBookingServiceTest {
                                 UUID.randomUUID().toString(),
                                 2,
                                 new BigDecimal("450.00"),
-                                "EUR"));
+                                "EUR",
+                                null));
+
+        assertThat(bookingId).isNotNull();
+        verify(bookingRepository).save(any(Booking.class));
+        verify(receiptStorage).store(any(Booking.class));
+    }
+
+    @Test
+    void createsAndPersistsABookingWithAnItemSummary() {
+        var travelerId = UUID.randomUUID().toString();
+
+        var bookingId =
+                service.create(
+                        new CreateBookingCommand(
+                                travelerId,
+                                "traveler@example.com",
+                                "FLIGHT",
+                                UUID.randomUUID().toString(),
+                                2,
+                                new BigDecimal("450.00"),
+                                "EUR",
+                                "Lisbon -> Sao Paulo, TP123, TAP Air Portugal"));
 
         assertThat(bookingId).isNotNull();
         verify(bookingRepository).save(any(Booking.class));

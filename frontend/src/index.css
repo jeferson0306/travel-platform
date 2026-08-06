@@ -1,149 +1,111 @@
-:root {
-  --text: #2b2b33;
-  --bg: #fff;
-  --border: #e2e2e6;
-  --accent: #6d28d9;
-  --accent-hover: #5b21b6;
-  --error: #b91c1c;
-  --info: #1d4ed8;
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font: 16px/1.5 var(--sans);
+@import 'tailwindcss';
+
+/* Class-based dark mode (not just prefers-color-scheme) so a header toggle can control it and
+   persist the choice - Tailwind v4's default `dark:` variant only follows OS preference unless
+   this custom variant is declared. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens deliberately avoid the default Tailwind indigo/purple + Inter
+ * "AI-generated SaaS" look: a warm sand background instead of stark white/gray,
+ * a deep pine (not navy/indigo) primary, a sunset coral accent instead of a
+ * gradient blob, and a serif display face (Fraunces) paired with Manrope for
+ * body text instead of Inter everywhere.
+ */
+@theme {
+  --font-display: 'Fraunces', ui-serif, serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink-950: #0b1b1e;
+  --color-ink-900: #10282c;
+  --color-ink-800: #173a3f;
+  --color-ink-700: #204f56;
+
+  --color-pine-600: #1f6f63;
+  --color-pine-500: #2c8577;
+  --color-pine-400: #4aa494;
+
+  --color-sunset-600: #e85a3a;
+  --color-sunset-500: #ff6b4a;
+  --color-sunset-400: #ff8a66;
+
+  /* Cooled from a warm cream/tan (#fbf7f1/#f3ece1/#e8ddc9) - read as yellowed/aged paper
+     rather than the tactile-not-sterile warmth it was going for. Near-neutral with a
+     barely-there cool tint instead, closer to how modern editorial sites use "off-white"
+     without any beige/tan undertone. */
+  --color-sand-50: #fafbfa;
+  --color-sand-100: #f1f3f1;
+  --color-sand-200: #e4e7e5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e5e5ea;
-    --bg: #16171d;
-    --border: #33343d;
-    --accent: #a78bfa;
-    --accent-hover: #c4b5fd;
+@layer base {
+  body {
+    @apply bg-sand-50 text-ink-950 font-sans antialiased dark:bg-ink-950 dark:text-sand-50;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  /* Elements without an explicit transition still feel snappy on hover/focus -
+     dev-standards/design-tokens.md: "interactive elements without transition feel heavy." */
+  button,
+  a {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
-* {
-  box-sizing: border-box;
+@layer utilities {
+  /* A faint 2% noise overlay stops flat gradients from banding and reads as
+     tactile/paper rather than a flat AI-generated fill - dev-standards
+     "Visual Styles & Morphisms". Self-contained SVG turbulence, no image asset. */
+  .bg-grain {
+    position: relative;
+  }
+  .bg-grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Editorial Premium: shadows read as crisp definition (a hairline + a tight,
+     low-blur drop) instead of the soft floating-blob glow that reads as
+     generic/dated "AI SaaS" - the blur radius is deliberately small relative to
+     the offset, closer to how print drop-shadows or a stacked-paper illustration
+     would fall than a diffuse ambient-occlusion glow. */
+  .shadow-elevated {
+    box-shadow:
+      0 1px 0 rgba(11, 27, 30, 0.06),
+      0 8px 20px -6px rgba(11, 27, 30, 0.18);
+  }
+
+  .shadow-popover {
+    box-shadow:
+      0 1px 0 rgba(11, 27, 30, 0.08),
+      0 20px 40px -12px rgba(11, 27, 30, 0.28);
+  }
+
+  /* Full-bleed hairline rule - the editorial-grid signature (dev-standards
+     "Editorial Grid / Magazine": black section dividers) used between major
+     sections instead of relying on background-color changes alone to separate them. */
+  .rule-hairline {
+    border-top: 1px solid rgb(11 27 30 / 0.1);
+  }
 }
 
-body {
-  margin: 0;
-}
-
-#root {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 16px 64px;
-}
-
-h1 {
-  font-size: 28px;
-  margin: 0 0 16px;
-}
-
-h2 {
-  font-size: 20px;
-  margin: 32px 0 8px;
-}
-
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: end;
-}
-
-.auth-page form {
-  flex-direction: column;
-  align-items: stretch;
-  max-width: 360px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-}
-
-input {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-}
-
-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
-}
-
-button:hover {
-  background: var(--accent-hover);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error {
-  color: var(--error);
-}
-
-.info {
-  color: var(--info);
-}
-
-.results {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.results li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.results li.empty {
-  color: var(--text);
-  opacity: 0.6;
-  justify-content: center;
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 16px;
-}
-
-header div {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.confirmation-page code {
-  background: var(--border);
-  padding: 2px 6px;
-  border-radius: 4px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -3,12 +3,15 @@ quarkus:
     name: gateway
   http:
     port: 8080
-    cors:
-      enabled: true
-      origins: ${CORS_ORIGINS:http://localhost:5173}
-      methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
-      headers: Authorization,Content-Type,X-Correlation-Id
-      exposed-headers: X-Correlation-Id
+    # Quarkus's built-in declarative CORS (quarkus.http.cors) is disabled on purpose. Its filter
+    # (io.quarkus.vertx.http.runtime.cors.CORSFilter#isMethodAllowed) rejected real, non-preflight
+    # requests with 403 even with the full method list configured - reproduced identically as a
+    # comma-string, as a YAML sequence, and with methods set to the "*" wildcard (which per the
+    # filter's own source should short-circuit isMethodAllowed to true). Confirmed the built jar
+    # actually contained each config, ruled out stale builds/env overrides/multiple listeners - a
+    # genuine framework-level bug on the pinned Quarkus version, not a config mistake. CORS is
+    # handled explicitly in ProxyRoutes instead: full control, fully testable, no dependency on a
+    # misbehaving framework internal. See gateway.cors.allowed-origins below.
   smallrye-health:
     root-path: /health
   log:
@@ -32,6 +35,8 @@ mp:
         location: publicKey.pem
 
 gateway:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
   rate-limit:
     requests-per-minute: 120
   upstream:

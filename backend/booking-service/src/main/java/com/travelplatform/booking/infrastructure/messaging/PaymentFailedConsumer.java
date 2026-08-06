@@ -54,7 +54,9 @@ public class PaymentFailedConsumer {
 
         var bookingId = event.bookingId().value();
         try {
-            cancelBookingUseCase.cancel(new CancelBookingCommand(bookingId));
+            // null caller = system-initiated (saga compensation), not subject to the HTTP
+            // ownership check - see CancelBookingUseCase's Javadoc.
+            cancelBookingUseCase.cancel(new CancelBookingCommand(bookingId, null));
         } catch (BookingAlreadyCancelledException e) {
             LOG.info("Booking " + bookingId + " already cancelled, ignoring duplicate delivery");
         } catch (RuntimeException e) {

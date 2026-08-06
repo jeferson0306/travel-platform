@@ -26,7 +26,12 @@ public class CreateFlightService implements CreateFlightUseCase {
                         command.departureAt(),
                         command.arrivalAt(),
                         new Money(command.priceAmount(), command.priceCurrency()),
-                        command.availableSeats());
+                        command.availableSeats(),
+                        command.airline(),
+                        command.airlineCode(),
+                        command.flightNumber(),
+                        command.cabinClass(),
+                        command.stops());
         flightRepository.save(flight);
         return flight.id();
     }

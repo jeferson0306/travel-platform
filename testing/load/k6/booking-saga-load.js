@@ -1,6 +1,6 @@
 // Full user journey through the gateway: register -> login -> create a booking, which drives
 // the whole choreography saga (booking-service -> payment-service -> booking-service ->
-// notification-service, via Kafka - ADR 0010/0011). Each VU registers its own user, so this
+// notification-service, via RabbitMQ - ADR 0010/0011). Each VU registers its own user, so this
 // exercises identity-service's write path too, not just booking creation.
 //
 // Needs an existing flight to book against - pass its id via FLIGHT_ID (see

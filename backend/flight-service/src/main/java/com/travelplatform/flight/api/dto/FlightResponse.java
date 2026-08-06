@@ -12,7 +12,12 @@ public record FlightResponse(
         Instant arrivalAt,
         BigDecimal priceAmount,
         String priceCurrency,
-        int availableSeats) {
+        int availableSeats,
+        String airline,
+        String airlineCode,
+        String flightNumber,
+        String cabinClass,
+        int stops) {
 
     public static FlightResponse from(Flight flight) {
         return new FlightResponse(
@@ -23,6 +28,11 @@ public record FlightResponse(
                 flight.arrivalAt(),
                 flight.price().amount(),
                 flight.price().currency(),
-                flight.availableSeats());
+                flight.availableSeats(),
+                flight.airline(),
+                flight.airlineCode(),
+                flight.flightNumber(),
+                flight.cabinClass(),
+                flight.stops());
     }
 }

@@ -9,7 +9,7 @@ Every backend service except `gateway` shares the hexagonal layout
 `api / application / domain / infrastructure` (enforced by ArchUnit tests)
 and the shared conventions in [conventions.md](conventions.md): canonical
 error shape, structured JSON request logs, health/metrics endpoints,
-Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
+Mongo-backed retry queue + per-consumer-group RabbitMQ DLQ for consumers
 (except search-service, which keeps that bookkeeping in OpenSearch).
 
 ## identity-service (8081)
@@ -29,10 +29,21 @@ Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
 
 - **Owns**: bookings (`PENDING` → `CONFIRMED` | `CANCELLED`), the saga's
   central aggregate.
-- **API**: `POST /api/v1/bookings` (flat body: travelerId, travelerEmail,
-  itemType FLIGHT|HOTEL, itemId, quantity, amount, currency),
-  `POST /api/v1/bookings/{id}/cancel`. No GET endpoint. No service-level
-  auth - traveler fields are trusted client input (documented gap).
+- **API**: `POST /api/v1/bookings` (flat body: travelerEmail, itemType
+  FLIGHT|HOTEL, itemId, quantity, amount, currency, optional itemSummary),
+  `GET /api/v1/bookings` (caller's own bookings), `POST
+/api/v1/bookings/{id}/cancel`. Every endpoint requires a valid JWT
+  (`@Authenticated`); travelerId is always the JWT subject, never client
+  input - a caller can only create/list/cancel their own bookings.
+  amount/currency/travelerEmail remain trusted client input (a separate,
+  still-open gap - no authoritative pricing/identity lookup yet).
+  `itemSummary` is likewise trusted, optional client input: a short
+  human-readable description (e.g. "Lisbon -> Sao Paulo, TP123, TAP Air
+  Portugal") the frontend already has from the search result the user
+  clicked - added so "My bookings"/the confirmation page can show what was
+  actually booked instead of a bare `itemId`. No synchronous lookup to
+  flight-service/hotel-service exists or is planned (ADR 0004 forbids
+  sync service-to-service calls).
 - **Publishes**: `booking-created`, `booking-cancelled`,
   `booking-confirmed` - all via the transactional outbox (ADR 0007).
 - **Consumes**: `payment-authorized` / `payment-failed` (group
@@ -45,7 +56,17 @@ Mongo-backed retry queue + per-consumer-group Kafka DLQ for consumers
 
 Twins, differing only in the inventory noun (seats vs rooms).
 
-- **Owns**: flight/hotel inventory documents.
+- **Owns**: flight/hotel inventory documents. Beyond the original
+  route/price/inventory fields, both now carry richer, informational-only
+  fields for search-result display: flights add `airline`, `airlineCode`,
+  `flightNumber` (all required on create), `cabinClass` (optional
+  freeform string), `stops` (int, defaults 0); hotels add `address`
+  (optional), `starRating` (1-5, defaults to 3 if omitted), `amenities`
+  (list of string, defaults empty), `description` (optional),
+  `reviewScore`/`reviewCount` (optional). None of this is looked up
+  synchronously from elsewhere - see `docs/events/flight-events.md` and
+  `hotel-events.md` for the full field list and the documented gap where
+  `search-service`'s own projection does not yet carry these fields.
 - **API**: `POST /api/v1/flights|hotels` (MANAGER/ADMIN/SUPER_ADMIN),
   `GET` search - public.
 - **Publishes**: `flight-created` / `hotel-created` (own outbox).
@@ -86,7 +107,7 @@ Twins, differing only in the inventory noun (seats vs rooms).
 
 ## assistant-service (8088)
 
-- **Owns**: nothing - stateless, read-only. No MongoDB, no Kafka. Its one
+- **Owns**: nothing - stateless, read-only. No MongoDB, no RabbitMQ. Its one
   synchronous external dependency is Ollama (local LLM runtime, ADR 0018),
   the third such dependency in this platform after gateway->backends and
   search-service->OpenSearch (ADR 0014) - same `@Timeout`/`@Retry` pattern.

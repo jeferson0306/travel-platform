@@ -19,6 +19,8 @@ public class SearchFlightsService implements SearchFlightsUseCase {
     @Override
     public List<Flight> search(SearchFlightsQuery query) {
         return flightRepository.search(
-                new AirportCode(query.origin()), new AirportCode(query.destination()));
+                new AirportCode(query.origin()),
+                new AirportCode(query.destination()),
+                query.departureDate());
     }
 }

@@ -5,7 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import io.quarkus.scheduler.Scheduled;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.rabbitmq.OutgoingRabbitMQMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Instant;
 import java.util.Date;
@@ -52,7 +52,7 @@ public class OutboxRelay {
         var eventType = event.getString("eventType");
         var payload = event.getString("payload");
 
-        var metadata = OutgoingKafkaRecordMetadata.<String>builder().withTopic(eventType).build();
+        var metadata = new OutgoingRabbitMQMetadata.Builder().withRoutingKey(eventType).build();
         var message =
                 Message.of(payload)
                         .addMetadata(metadata)

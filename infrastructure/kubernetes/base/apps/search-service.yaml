@@ -30,7 +30,7 @@ spec:
           ports:
             - containerPort: 8087
           env:
-            - { name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:19092" }
+            - { name: RABBITMQ_HOST, value: "rabbitmq" }
           resources:
             requests: { cpu: 100m, memory: 224Mi }
             limits: { cpu: 500m, memory: 512Mi }

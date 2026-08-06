@@ -63,7 +63,13 @@ class RetryRelayTest {
                                 "Porto",
                                 new BigDecimal("95.00"),
                                 "EUR",
-                                availableRooms))
+                                availableRooms,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                0))
                 .post("/api/v1/hotels")
                 .then()
                 .statusCode(201)

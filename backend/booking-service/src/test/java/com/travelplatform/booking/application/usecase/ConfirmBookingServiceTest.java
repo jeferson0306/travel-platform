@@ -44,7 +44,8 @@ class ConfirmBookingServiceTest {
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
                         new Email("traveler@example.com"),
-                        new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 1),
+                        new BookingReference(
+                                ItemType.FLIGHT, UUID.randomUUID().toString(), 1, null),
                         new Money(new BigDecimal("450.00"), "EUR"));
         when(bookingRepository.findById(booking.id())).thenReturn(Optional.of(booking));
 

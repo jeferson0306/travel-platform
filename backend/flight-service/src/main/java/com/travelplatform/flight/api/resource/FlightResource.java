@@ -17,6 +17,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -40,8 +41,16 @@ public class FlightResource {
 
     @GET
     public List<FlightResponse> search(
-            @QueryParam("origin") String origin, @QueryParam("destination") String destination) {
-        return searchFlightsUseCase.search(new SearchFlightsQuery(origin, destination)).stream()
+            @QueryParam("origin") String origin,
+            @QueryParam("destination") String destination,
+            @QueryParam("departureDate") String departureDate) {
+        var date =
+                departureDate == null || departureDate.isBlank()
+                        ? null
+                        : LocalDate.parse(departureDate);
+        return searchFlightsUseCase
+                .search(new SearchFlightsQuery(origin, destination, date))
+                .stream()
                 .map(FlightResponse::from)
                 .toList();
     }
@@ -59,7 +68,12 @@ public class FlightResource {
                                 request.arrivalAt(),
                                 request.priceAmount(),
                                 request.priceCurrency(),
-                                request.availableSeats()));
+                                request.availableSeats(),
+                                request.airline(),
+                                request.airlineCode(),
+                                request.flightNumber(),
+                                request.cabinClass(),
+                                request.stops()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();

@@ -113,7 +113,9 @@ public class RetryRelay {
             }
         } else {
             try {
-                cancelBookingUseCase.cancel(new CancelBookingCommand(bookingId));
+                // null caller = system-initiated (saga compensation retry), not subject to the
+                // HTTP ownership check - see CancelBookingUseCase's Javadoc.
+                cancelBookingUseCase.cancel(new CancelBookingCommand(bookingId, null));
             } catch (BookingAlreadyCancelledException e) {
                 // See above.
             }

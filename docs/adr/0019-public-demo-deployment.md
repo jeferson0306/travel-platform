@@ -120,6 +120,44 @@ in place rather than worked around:
    earlier interrupted `up` invocation in this same long-running local
    session, not a manifest defect.
 
+## Addendum (2026-08-05): Railway trial expired, moving to Render
+
+Railway's trial expired before backend deployment was completed. Rather
+than pay to reactivate it, hosting moves to Render - which this ADR
+already evaluated and rejected above, for a real reason that still
+applies: **Render's free web-service tier has no free Kafka or Redis**,
+and this platform's core value is the async choreography saga.
+
+This addendum does not silently reverse that trade-off. Two honest paths
+forward, neither chosen yet:
+
+1. **Kafka-less/simplified demo on Render** - deploy `identity`, `flight`,
+   `hotel`, `booking`, `gateway` without Kafka. The outbox pattern means
+   booking creation still succeeds and persists correctly (the DB write
+   and the Kafka publish are already decoupled, ADR 0008); only the
+   downstream effects - inventory decrement, confirmation email - would
+   silently not fire until Kafka exists. Cheapest, fastest, but visibly
+   incomplete: `notification-service` and `payment-service` would sit
+   idle.
+2. **Render + an external managed Kafka** - a free tier like Upstash
+   Kafka (serverless, reachable over the public internet, unlike a
+   self-hosted broker) would let Render's web services keep publishing
+   and consuming exactly as they do locally, no code changes, just a new
+   `KAFKA_BOOTSTRAP_SERVERS`/SASL config. Preserves the real architecture
+   this ADR originally paid Railway to keep; not yet evaluated for
+   Render's outbound-connection limits or Upstash's free-tier throughput
+   ceiling.
+
+**Resolved (2026-08-05)**: path 2 was chosen, but not via Upstash Kafka -
+see ADR 0004's 2026-08-05 addendum for the fuller story. The platform
+migrated its messaging backbone from Kafka to RabbitMQ, which CloudAMQP
+offers a genuinely free managed tier for. `render.yaml` (repo root) now
+defines all six essential-flow services (`identity`, `flight`, `hotel`,
+`booking`, `payment`, `gateway` - `notification`/`search` remain optional
+extras) with a `RABBITMQ_URL` env var per service pointing at a CloudAMQP
+instance. Still not deployed - kept local until the user actually
+provisions a CloudAMQP account and runs the steps below.
+
 ## Consequences
 
 - `backend/Dockerfile.railway` is a permanent addition, reusable for any

@@ -15,5 +15,10 @@ public interface CreateFlightUseCase {
             Instant arrivalAt,
             BigDecimal priceAmount,
             String priceCurrency,
-            int availableSeats) {}
+            int availableSeats,
+            String airline,
+            String airlineCode,
+            String flightNumber,
+            String cabinClass,
+            int stops) {}
 }

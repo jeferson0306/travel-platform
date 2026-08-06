@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - infra/mongodb.yaml
-  - infra/kafka.yaml
+  - infra/rabbitmq.yaml
   - infra/redis.yaml
   - infra/opensearch.yaml
   - infra/localstack.yaml

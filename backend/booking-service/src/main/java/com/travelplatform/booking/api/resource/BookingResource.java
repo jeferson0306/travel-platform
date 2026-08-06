@@ -1,36 +1,60 @@
 package com.travelplatform.booking.api.resource;
 
+import com.travelplatform.booking.api.dto.BookingResponse;
 import com.travelplatform.booking.api.dto.CreateBookingRequest;
 import com.travelplatform.booking.api.dto.CreatedResponse;
 import com.travelplatform.booking.application.port.in.CancelBookingUseCase;
 import com.travelplatform.booking.application.port.in.CancelBookingUseCase.CancelBookingCommand;
 import com.travelplatform.booking.application.port.in.CreateBookingUseCase;
 import com.travelplatform.booking.application.port.in.CreateBookingUseCase.CreateBookingCommand;
+import com.travelplatform.booking.application.port.in.ListBookingsUseCase;
+import com.travelplatform.booking.application.port.in.ListBookingsUseCase.ListBookingsQuery;
+import io.quarkus.security.Authenticated;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 
 /**
- * travelerId is trusted client input for now - there is no Gateway/JWT enforcement in front of this
- * service yet (see docs/architecture/rate-limiting.md for the Gateway as the intended enforcement
- * point). Revisit once ROADMAP M14 lands.
+ * Every endpoint requires a valid JWT (verified against identity-service's public key - same RS256
+ * setup as flight-service/hotel-service). travelerId is derived exclusively from the JWT subject,
+ * never from client input - a caller can only create, list, or cancel their own bookings.
+ * amount/currency/travelerEmail remain trusted client input (see CreateBookingRequest) - that's a
+ * separate, still-open gap around authoritative pricing, not part of this fix.
  */
 @Path("/api/v1/bookings")
 @Produces(MediaType.APPLICATION_JSON)
+@Authenticated
 public class BookingResource {
 
     private final CreateBookingUseCase createBookingUseCase;
     private final CancelBookingUseCase cancelBookingUseCase;
+    private final ListBookingsUseCase listBookingsUseCase;
+    private final JsonWebToken jwt;
 
     public BookingResource(
-            CreateBookingUseCase createBookingUseCase, CancelBookingUseCase cancelBookingUseCase) {
+            CreateBookingUseCase createBookingUseCase,
+            CancelBookingUseCase cancelBookingUseCase,
+            ListBookingsUseCase listBookingsUseCase,
+            JsonWebToken jwt) {
         this.createBookingUseCase = createBookingUseCase;
         this.cancelBookingUseCase = cancelBookingUseCase;
+        this.listBookingsUseCase = listBookingsUseCase;
+        this.jwt = jwt;
+    }
+
+    @GET
+    public List<BookingResponse> listByTraveler() {
+        return listBookingsUseCase.list(new ListBookingsQuery(jwt.getSubject())).stream()
+                .map(BookingResponse::from)
+                .toList();
     }
 
     @POST
@@ -39,13 +63,14 @@ public class BookingResource {
         var id =
                 createBookingUseCase.create(
                         new CreateBookingCommand(
-                                request.travelerId(),
+                                jwt.getSubject(),
                                 request.travelerEmail(),
                                 request.itemType(),
                                 request.itemId(),
                                 request.quantity(),
                                 request.amount(),
-                                request.currency()));
+                                request.currency(),
+                                request.itemSummary()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();
@@ -54,7 +79,7 @@ public class BookingResource {
     @POST
     @Path("/{id}/cancel")
     public Response cancel(@PathParam("id") String id) {
-        cancelBookingUseCase.cancel(new CancelBookingCommand(id));
+        cancelBookingUseCase.cancel(new CancelBookingCommand(id, jwt.getSubject()));
         return Response.noContent().build();
     }
 }

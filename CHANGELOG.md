@@ -8,8 +8,76 @@ and this project uses milestone-based versioning as defined in
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gateway rejected every real state-changing browser request with a 403** (register, login,
+  book, cancel - anything but a plain GET). Root cause was two-fold: (1) each of the 7 internal
+  backend services (identity, booking, flight, hotel, payment, notification, search, assistant)
+  ran Quarkus's own declarative CORS filter with `methods: GET,OPTIONS` - missing POST/PUT/PATCH
+  /DELETE - so it rejected the request the gateway forwarded on its behalf, since that filter
+  evaluates the `Origin` header regardless of who sent the request; (2) CORS is a browser-only
+  concept and the gateway is the only browser-facing surface, so per-service CORS was never
+  correct architecturally, independent of the methods gap. Fixed by removing CORS entirely from
+  the 8 internal services and implementing it once, explicitly, in the gateway's own
+  `ProxyRoutes` (an allow-list match against `gateway.cors.allowed-origins`, plus an explicit
+  OPTIONS preflight route) - full control, fully testable, no dependency on Quarkus's declarative
+  CORS filter (which separately proved unreliable on the gateway itself: identical 403s with a
+  comma-string methods list, a YAML-list, and even a `"*"` wildcard). Also fixed a related,
+  previously-undetected gateway NPE-causing-502: `ProxyRoutes.forward` crashed when an upstream
+  response had a null body (e.g. a 204). Both bugs were invisible to all prior E2E verification
+  in this repo because it used `curl` without an `Origin` header, which never triggers CORS
+  enforcement at all - only a real browser (or `curl -H "Origin: ..."`) does. Verified via a real
+  browser: register -> 201, with `Access-Control-Allow-Origin` on the actual response, not just
+  the preflight.
+
+### Changed
+
+- **Messaging backbone migrated from Kafka to RabbitMQ** across all six
+  messaging-dependent services (booking, flight, hotel, payment,
+  notification, search) - see
+  [docs/adr/0004-use-kafka-for-event-driven-communication.md](docs/adr/0004-use-kafka-for-event-driven-communication.md)'s
+  2026-08-05 addendum. Driven by hosting cost (no free managed Kafka
+  anywhere vs. CloudAMQP's genuinely free RabbitMQ tier), not a
+  functional gap - the topology (topic exchange per publisher, routing
+  key per event type, one durable queue per consumer) is a direct
+  mapping of the old topic/consumer-group model. Only the four
+  `OutboxRelay` classes needed a Java change (Kafka's dynamic per-message
+  topic metadata → RabbitMQ's per-message routing-key metadata); every
+  consumer, every DLQ publisher, and the whole test suite were unchanged
+  (tests already ran against `smallrye-in-memory`, never a real broker).
+  `infrastructure/docker/docker-compose.yml`'s `kafka`/`kafka-init`
+  became `rabbitmq`/`rabbitmq-init`. Verified end-to-end against a real
+  local RabbitMQ: a booking decremented flight inventory by exactly the
+  booked quantity, was authorized, confirmed, and triggered a
+  notification email - the full choreography saga, unmodified behavior.
+
 ### Added
 
+- Public live `/status` dashboard: polls every backend service's own
+  SmallRye `/health` endpoint directly from the browser (MongoDB,
+  RabbitMQ, Redis dependency checks included), plus a static architecture pipeline
+  diagram and engineering highlights - all 9 services now expose CORS on
+  `/health` for this. Frontend deployed to Vercel
+  (`aerostay-jeferson0306s-projects.vercel.app`). A draggable 3D airplane
+  hero section (Three.js + React Three Fiber, GSAP ScrollTrigger entrance)
+  with a revolved-profile fuselage and tapered winglet wings.
+- Richer flight/hotel search results and booking details: `flight-service`
+  gains `airline`, `airlineCode`, `flightNumber`, `cabinClass`, `stops`;
+  `hotel-service` gains `address`, `starRating`, `amenities`,
+  `description`, `reviewScore`, `reviewCount` - all additive/optional
+  fields, no existing endpoint contract broken. `booking-service` gains an
+  optional `itemSummary` (trusted client input, same pattern as
+  `amount`/`currency`/`travelerEmail`) so "My bookings" and the booking
+  confirmation page can show what was actually booked instead of a bare
+  `itemId`. Frontend redesigned the flight/hotel result cards (duration,
+  cabin class, stops, star rating, amenities, review score) and added
+  `formatMoney`/`formatDate`/`formatDuration` (`lib/format.ts`) and a
+  purely decorative per-city gradient theme for hotel cards
+  (`lib/destinationTheme.ts`, no photo storage exists). `search-service`'s
+  own projection intentionally does not carry the new fields yet - the
+  frontend queries flight-service/hotel-service directly, not
+  search-service (documented gap, see `docs/events/flight-events.md` and
+  `hotel-events.md`).
 - Repository scaffolding: branching model, contribution guidelines, security
   policy, ADR process, base local infrastructure (MongoDB, Redis, Kafka,
   LocalStack).
@@ -255,3 +323,35 @@ and this project uses milestone-based versioning as defined in
   Railway's builder has no separate build step) supports it. MongoDB
   Atlas free tier used for the deployed database. Deployment itself is
   in progress as of this entry - see ROADMAP M20 and ADR 0019 for status.
+- Post-M20 polish: the demo-companion `frontend/` rebranded as
+  "Aerostay" with a Tailwind design system, a public marketing landing
+  page (live search widget hitting the real API), GSAP scroll
+  animations, Lucide icons, real button physicality (spring
+  hover/tap), a test-payment checkout modal, flight departure-date
+  filtering (new backend query param, `flight-service`), an
+  airport/city autocomplete (backed by a free public airports API for
+  flights, a curated known-city list for hotels since hotel search
+  needs an exact match against our own inventory), toast-based
+  human-readable error messages, and a booking-history page (new `GET
+/api/v1/bookings` endpoint). A minimal Vitest + Testing Library setup
+  was added for the frontend (previously zero test coverage) covering
+  the error-message logic and the two autocomplete components.
+
+### Security
+
+- `booking-service` previously trusted a client-supplied `travelerId`
+  on every endpoint (documented as a known gap since M8/ADR 0007) - any
+  caller who knew or guessed another traveler's id could list their
+  bookings, create a booking "as" them, or cancel any booking outright
+  (the cancel endpoint had no ownership check at all). Fixed:
+  `booking-service` now verifies a JWT on every endpoint
+  (`@Authenticated`, RS256 against identity-service's public key - the
+  same setup `flight-service`/`hotel-service` have had since M9) and
+  derives `travelerId` exclusively from the JWT subject; the
+  create/list/cancel endpoints no longer accept it as input at all. The
+  saga's own internal compensating cancel (payment-failed,
+  `PaymentFailedConsumer`/`RetryRelay`) is exempted from the ownership
+  check by design - it's system-initiated, not a user request, and has
+  no caller identity to check. `amount`/`currency`/`travelerEmail`
+  remain trusted client input, a separate, still-open gap (no
+  authoritative pricing/identity lookup yet) not addressed by this fix.
