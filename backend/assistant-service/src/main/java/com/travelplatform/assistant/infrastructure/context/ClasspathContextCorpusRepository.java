@@ -32,7 +32,7 @@ public class ClasspathContextCorpusRepository implements ContextCorpusPort {
                     "prompts/milestone-workflow.md",
                     "prompts/new-microservice.md",
                     "prompts/new-endpoint.md",
-                    "prompts/new-kafka-consumer.md",
+                    "prompts/new-rabbitmq-consumer.md",
                     "prompts/new-adr.md");
 
     @Override

@@ -8,6 +8,28 @@ and this project uses milestone-based versioning as defined in
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gateway rejected every real state-changing browser request with a 403** (register, login,
+  book, cancel - anything but a plain GET). Root cause was two-fold: (1) each of the 7 internal
+  backend services (identity, booking, flight, hotel, payment, notification, search, assistant)
+  ran Quarkus's own declarative CORS filter with `methods: GET,OPTIONS` - missing POST/PUT/PATCH
+  /DELETE - so it rejected the request the gateway forwarded on its behalf, since that filter
+  evaluates the `Origin` header regardless of who sent the request; (2) CORS is a browser-only
+  concept and the gateway is the only browser-facing surface, so per-service CORS was never
+  correct architecturally, independent of the methods gap. Fixed by removing CORS entirely from
+  the 8 internal services and implementing it once, explicitly, in the gateway's own
+  `ProxyRoutes` (an allow-list match against `gateway.cors.allowed-origins`, plus an explicit
+  OPTIONS preflight route) - full control, fully testable, no dependency on Quarkus's declarative
+  CORS filter (which separately proved unreliable on the gateway itself: identical 403s with a
+  comma-string methods list, a YAML-list, and even a `"*"` wildcard). Also fixed a related,
+  previously-undetected gateway NPE-causing-502: `ProxyRoutes.forward` crashed when an upstream
+  response had a null body (e.g. a 204). Both bugs were invisible to all prior E2E verification
+  in this repo because it used `curl` without an `Origin` header, which never triggers CORS
+  enforcement at all - only a real browser (or `curl -H "Origin: ..."`) does. Verified via a real
+  browser: register -> 201, with `Access-Control-Allow-Origin` on the actual response, not just
+  the preflight.
+
 ### Changed
 
 - **Messaging backbone migrated from Kafka to RabbitMQ** across all six

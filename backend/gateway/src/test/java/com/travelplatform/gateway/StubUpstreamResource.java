@@ -18,6 +18,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <ul>
  *   <li>{@code X-Stub-Status} - the stub answers with this status code instead of 200.
+ *   <li>{@code X-Stub-Empty-Body} - the stub answers with a genuinely empty body instead of the
+ *       JSON echo, to reproduce the null-body case {@code ProxyRoutes.forward} must handle without
+ *       throwing (a real {@code NullPointerException} was observed here in production).
  *   <li>{@code X-Stub-Test-Id} + {@code X-Stub-Slow-Until-Attempt} + {@code X-Stub-Delay-Ms} - the
  *       stub delays its response by {@code X-Stub-Delay-Ms} for every attempt up to and including
  *       {@code X-Stub-Slow-Until-Attempt} (attempts are counted per {@code X-Stub-Test-Id},
@@ -82,6 +85,10 @@ public class StubUpstreamResource implements QuarkusTestResourceLifecycleManager
             io.vertx.core.AsyncResult<io.vertx.core.buffer.Buffer> bodyResult) {
         var statusHeader = request.getHeader("X-Stub-Status");
         var status = statusHeader != null ? Integer.parseInt(statusHeader) : 200;
+        if (request.getHeader("X-Stub-Empty-Body") != null) {
+            request.response().setStatusCode(status).end();
+            return;
+        }
         var echo =
                 new JsonObject()
                         .put("method", request.method().name())

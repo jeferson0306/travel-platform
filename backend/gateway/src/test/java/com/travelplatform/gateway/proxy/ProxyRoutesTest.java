@@ -76,12 +76,45 @@ class ProxyRoutesTest {
     }
 
     @Test
+    @DisplayName("proxies an upstream response with a genuinely empty body without throwing")
+    void proxiesEmptyUpstreamBody() {
+        // Regression test: upstreamResponse.bodyAsBuffer() returns null for a body-less upstream
+        // response, which threw a NullPointerException in ProxyRoutes.forward before it
+        // null-checked
+        // - observed directly under real traffic, caught here instead of only in production.
+        given().header("X-Stub-Empty-Body", "true")
+                .when()
+                .get("/api/v1/bookings/123")
+                .then()
+                .statusCode(200)
+                .body(equalTo(""));
+    }
+
+    @Test
     @DisplayName("answers a CORS preflight request without reaching any backend")
     void answersCorsPreflight() {
         given().header("Origin", "http://localhost:5173")
                 .header("Access-Control-Request-Method", "POST")
                 .when()
                 .options("/api/v1/bookings")
+                .then()
+                .statusCode(200)
+                .header("Access-Control-Allow-Origin", "http://localhost:5173");
+    }
+
+    @Test
+    @DisplayName("an actual (non-preflight) POST request with a matching Origin header succeeds")
+    void actualRequestWithOriginHeaderSucceeds() {
+        // Regression test: Quarkus's own declarative CORS filter rejected this exact scenario with
+        // a 403 on the pinned version (see application.yml), which the preflight-only test above
+        // never caught since OPTIONS was answered separately. CORS is now handled directly in
+        // ProxyRoutes, so an actual request with a matching Origin must succeed and carry the
+        // Access-Control-Allow-Origin header on the real response.
+        given().contentType("application/json")
+                .header("Origin", "http://localhost:5173")
+                .body("{\"origin\":\"LIS\"}")
+                .when()
+                .post("/api/v1/bookings/search")
                 .then()
                 .statusCode(200)
                 .header("Access-Control-Allow-Origin", "http://localhost:5173");

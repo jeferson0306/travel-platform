@@ -3,10 +3,12 @@ quarkus:
     name: flight-service
   http:
     port: 8083
-    cors:
-      enabled: true
-      origins: ${CORS_ORIGINS:http://localhost:5173}
-      methods: GET,OPTIONS
+    # CORS is handled solely at the gateway (backend/gateway/src/main/resources/application.yml)
+    # - the only browser-facing surface. Quarkus's declarative CORS here would evaluate the Origin
+    # header the gateway forwards along on every proxied request and reject it with 403 before
+    # this service ever ran the request, since these internal calls aren't real browser requests
+    # (observed directly: it was the actual root cause of a gateway 403 mis-diagnosed as a gateway
+    # bug - each service's own CORS filter, not the gateway, was rejecting the proxied request).
   mongodb:
     database: flight
   smallrye-openapi:

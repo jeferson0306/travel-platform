@@ -8,8 +8,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 /**
@@ -33,21 +36,66 @@ public class ProxyRoutes {
             Set.of("connection", "content-length", "host", "transfer-encoding");
     private static final Set<HttpMethod> IDEMPOTENT_METHODS =
             Set.of(HttpMethod.GET, HttpMethod.HEAD);
+    private static final String CORS_ALLOWED_METHODS = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+    private static final String CORS_ALLOWED_HEADERS =
+            "Authorization,Content-Type,X-Correlation-Id";
+    private static final String CORS_EXPOSED_HEADERS = "X-Correlation-Id";
 
     private final RoutingTable routingTable;
     private final RateLimiter rateLimiter;
     private final TokenValidator tokenValidator;
     private final UpstreamProxyClient upstreamProxyClient;
+    private final List<String> allowedOrigins;
 
     public ProxyRoutes(
             RoutingTable routingTable,
             RateLimiter rateLimiter,
             TokenValidator tokenValidator,
-            UpstreamProxyClient upstreamProxyClient) {
+            UpstreamProxyClient upstreamProxyClient,
+            @ConfigProperty(name = "gateway.cors.allowed-origins") String allowedOriginsConfig) {
         this.routingTable = routingTable;
         this.rateLimiter = rateLimiter;
         this.tokenValidator = tokenValidator;
         this.upstreamProxyClient = upstreamProxyClient;
+        this.allowedOrigins =
+                Arrays.stream(allowedOriginsConfig.split(",")).map(String::trim).toList();
+    }
+
+    /**
+     * Quarkus's own declarative CORS filter proved unreliable on this version (see the comment in
+     * application.yml), so CORS is handled here instead: matched explicitly against the configured
+     * allow-list rather than rejected with a framework-level 403. An origin that isn't on the list
+     * simply doesn't get the header - the browser enforces the block client-side, which is the
+     * spec-correct behavior anyway.
+     */
+    private String matchedOrigin(RoutingContext rc) {
+        var origin = rc.request().getHeader("Origin");
+        return origin != null && allowedOrigins.contains(origin) ? origin : null;
+    }
+
+    private void applyCorsHeaders(RoutingContext rc, String origin) {
+        rc.response()
+                .putHeader("Access-Control-Allow-Origin", origin)
+                .putHeader("Access-Control-Allow-Credentials", "true")
+                .putHeader("Vary", "Origin")
+                .putHeader("Access-Control-Expose-Headers", CORS_EXPOSED_HEADERS);
+    }
+
+    @Route(
+            regex = "/api/v1/.*",
+            type = Route.HandlerType.BLOCKING,
+            methods = Route.HttpMethod.OPTIONS)
+    void preflight(RoutingContext rc) {
+        var origin = matchedOrigin(rc);
+        var response = rc.response().setStatusCode(200);
+        if (origin != null) {
+            response.putHeader("Access-Control-Allow-Origin", origin)
+                    .putHeader("Access-Control-Allow-Credentials", "true")
+                    .putHeader("Vary", "Origin");
+        }
+        response.putHeader("Access-Control-Allow-Methods", CORS_ALLOWED_METHODS)
+                .putHeader("Access-Control-Allow-Headers", CORS_ALLOWED_HEADERS)
+                .end();
     }
 
     @Route(
@@ -61,6 +109,11 @@ public class ProxyRoutes {
                 Route.HttpMethod.DELETE
             })
     void proxy(RoutingContext rc) {
+        var origin = matchedOrigin(rc);
+        if (origin != null) {
+            applyCorsHeaders(rc, origin);
+        }
+
         var segment = firstSegmentAfterApiV1(rc.request().path());
         var upstreamBaseUrl = routingTable.resolve(segment);
         if (upstreamBaseUrl == null) {
@@ -129,7 +182,16 @@ public class ProxyRoutes {
                                     proxied.putHeader(entry.getKey(), entry.getValue());
                                 }
                             });
-            proxied.end(upstreamResponse.bodyAsBuffer().getDelegate());
+            // bodyAsBuffer() returns null for a genuinely empty upstream body (e.g. a 204, or a
+            // 201 whose body hasn't fully arrived when this is read) - observed directly as an
+            // NPE here under real traffic, not just a theoretical case. Same defensive pattern as
+            // the request body above: null means "nothing to write", not "something went wrong".
+            var upstreamBody = upstreamResponse.bodyAsBuffer();
+            if (upstreamBody == null) {
+                proxied.end();
+            } else {
+                proxied.end(upstreamBody.getDelegate());
+            }
         } catch (Exception e) {
             LOG.error("Failed to reach upstream " + targetUri, e);
             var outcome = outcomeFor(e);
