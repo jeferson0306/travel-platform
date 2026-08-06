@@ -31,7 +31,7 @@
     <google-java-format.version>1.27.0</google-java-format.version>
     <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
     <pitest-maven-plugin.version>1.19.1</pitest-maven-plugin.version>
-    <pitest-junit5-plugin.version>1.2.2</pitest-junit5-plugin.version>
+    <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
   </properties>
 
   <build>
