@@ -1,0 +1,45 @@
+# Mirrors docker-compose's redis service - gateway's rate-limit counters only (ADR 0013), no
+# persistence needed (--save "" --appendonly no, same as compose). Idle memory measured at ~4.5MiB;
+# request/limit here leave headroom for real counter traffic rather than pinning to that number.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: travel-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          args: ["redis-server", "--save", "", "--appendonly", "no"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          readinessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            initialDelaySeconds: 5
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # gateway's REDIS_URL is redis://redis:6379 - name must stay "redis".
+  name: redis
+  namespace: travel-platform
+spec:
+  selector: { app: redis }
+  ports:
+    - port: 6379
+      targetPort: 6379

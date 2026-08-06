@@ -33,7 +33,8 @@ public class CreateBookingService implements CreateBookingUseCase {
                         new BookingReference(
                                 ItemType.valueOf(command.itemType()),
                                 command.itemId(),
-                                command.quantity()),
+                                command.quantity(),
+                                command.itemSummary()),
                         new Money(command.amount(), command.currency()));
         bookingRepository.save(booking);
         // Best-effort, not transactional with the write above - see

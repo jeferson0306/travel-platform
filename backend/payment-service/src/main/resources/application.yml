@@ -3,6 +3,12 @@ quarkus:
     name: payment-service
   http:
     port: 8085
+    # CORS is handled solely at the gateway (backend/gateway/src/main/resources/application.yml)
+    # - the only browser-facing surface. Quarkus's declarative CORS here would evaluate the Origin
+    # header the gateway forwards along on every proxied request and reject it with 403 before
+    # this service ever ran the request, since these internal calls aren't real browser requests
+    # (observed directly: it was the actual root cause of a gateway 403 mis-diagnosed as a gateway
+    # bug - each service's own CORS filter, not the gateway, was rejecting the proxied request).
   mongodb:
     database: payment
   smallrye-openapi:
@@ -18,7 +24,7 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
       # See booking-service/src/main/resources/application.yml for the rationale - tests use
       # the in-memory connector (see %test below).
@@ -31,35 +37,41 @@ mp:
       publickey:
         location: publicKey.pem
   messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
     incoming:
       booking-created:
-        connector: smallrye-kafka
-        topic: booking-created
-        group.id: payment-processor
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-created.payment-processor
+        routing-keys: booking-created
       booking-cancelled:
-        connector: smallrye-kafka
-        topic: booking-cancelled
-        group.id: payment-processor
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-cancelled.payment-processor
+        routing-keys: booking-cancelled
     outgoing:
       payment-events:
-        connector: smallrye-kafka
-        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        connector: smallrye-rabbitmq
+        exchange:
+          name: payment-events
+        # Overridden per-message by OutboxRelay (routing key = the event's eventType) - this
         # default only satisfies config validation and is never actually used.
-        topic: payment-events-default
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        default-routing-key: payment-events-default
       booking-created-dlq:
-        connector: smallrye-kafka
-        topic: booking-created.payment-processor.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-created.payment-processor.dlq
       booking-cancelled-dlq:
-        connector: smallrye-kafka
-        topic: booking-cancelled.payment-processor.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-cancelled.payment-processor.dlq
 
 "%dev":
   quarkus:
@@ -95,6 +107,7 @@ mp:
   quarkus:
     mongodb:
       connection-string: ${MONGO_URI}
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}

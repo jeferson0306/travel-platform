@@ -8,6 +8,7 @@ import com.travelplatform.hotel.api.dto.CreateHotelRequest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.jwt.build.Jwt;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,17 @@ class HotelResourceTest {
                 .contentType("application/json")
                 .body(
                         new CreateHotelRequest(
-                                "Porto Riverside", city, new BigDecimal("95.00"), "EUR", 15))
+                                "Porto Riverside",
+                                city,
+                                new BigDecimal("95.00"),
+                                "EUR",
+                                15,
+                                "Rua do Ouro 50",
+                                4,
+                                List.of("Free WiFi", "Breakfast included"),
+                                "A riverside hotel in Porto.",
+                                4.5,
+                                200))
                 .post("/api/v1/hotels")
                 .then()
                 .statusCode(201);
@@ -54,7 +65,19 @@ class HotelResourceTest {
     @Test
     void createWithoutTokenIsRejected() {
         given().contentType("application/json")
-                .body(new CreateHotelRequest("Hotel X", "Lisbon", new BigDecimal("1"), "EUR", 1))
+                .body(
+                        new CreateHotelRequest(
+                                "Hotel X",
+                                "Lisbon",
+                                new BigDecimal("1"),
+                                "EUR",
+                                1,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                0))
                 .when()
                 .post("/api/v1/hotels")
                 .then()
@@ -65,7 +88,19 @@ class HotelResourceTest {
     void createWithInsufficientRoleIsForbidden() {
         given().header("Authorization", "Bearer " + tokenWithRole("USER"))
                 .contentType("application/json")
-                .body(new CreateHotelRequest("Hotel X", "Lisbon", new BigDecimal("1"), "EUR", 1))
+                .body(
+                        new CreateHotelRequest(
+                                "Hotel X",
+                                "Lisbon",
+                                new BigDecimal("1"),
+                                "EUR",
+                                1,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                0))
                 .when()
                 .post("/api/v1/hotels")
                 .then()
@@ -77,11 +112,54 @@ class HotelResourceTest {
     void rejectsInvalidPayload() {
         given().header("Authorization", "Bearer " + tokenWithRole("ADMIN"))
                 .contentType("application/json")
-                .body(new CreateHotelRequest("", "Lisbon", new BigDecimal("-1"), "EU", -5))
+                .body(
+                        new CreateHotelRequest(
+                                "",
+                                "Lisbon",
+                                new BigDecimal("-1"),
+                                "EU",
+                                -5,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                0))
                 .when()
                 .post("/api/v1/hotels")
                 .then()
                 .statusCode(400)
                 .body("error", equalTo("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void createWithoutStarRatingDefaultsToThree() {
+        given().header("Authorization", "Bearer " + tokenWithRole("MANAGER"))
+                .contentType("application/json")
+                .body(
+                        new CreateHotelRequest(
+                                "Coimbra Inn",
+                                "Coimbra",
+                                new BigDecimal("60.00"),
+                                "EUR",
+                                10,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                0))
+                .when()
+                .post("/api/v1/hotels")
+                .then()
+                .statusCode(201);
+
+        given().queryParam("city", "Coimbra")
+                .when()
+                .get("/api/v1/hotels")
+                .then()
+                .statusCode(200)
+                .body("[0].starRating", equalTo(3))
+                .body("[0].amenities", org.hamcrest.Matchers.empty());
     }
 }

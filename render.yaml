@@ -1,0 +1,163 @@
+# Render Blueprint - prepared, NOT yet deployed (see docs/adr/0019-public-demo-deployment.md's
+# 2026-08-05 addendum, docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05
+# addendum, and docs/deploy/render.md for the full decision trail and setup steps).
+#
+# The Kafka-hosting blocker that limited this file to two services is resolved: the platform
+# migrated its messaging backbone from Kafka to RabbitMQ, and CloudAMQP has a genuinely free
+# managed RabbitMQ tier - so all six essential-flow services from ADR 0019 (identity, flight,
+# hotel, booking, payment, notification, plus gateway) are defined below. search-service and
+# assistant-service stay out of scope (OpenSearch/Ollama, neither fits a free tier - unchanged
+# from ADR 0019's original reasoning).
+#
+# All backend services build from backend/Dockerfile.railway (repo-root build context, Maven runs
+# inside the image) - that file is provider-agnostic despite its name; see its own header comment.
+
+services:
+  - type: redis
+    name: aerostay-redis
+    plan: free
+    ipAllowList: [] # only reachable from other Render services in this account
+
+  - type: web
+    name: aerostay-identity
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: identity-service
+    envVars:
+      - key: MONGO_URI
+        sync: false # set manually from the MongoDB Atlas connection string, never committed
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  - type: web
+    name: aerostay-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: gateway
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aerostay-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  # --- Messaging-dependent services: each needs MONGO_URI (own Atlas database) and the four
+  # RABBITMQ_* vars pointing at a CloudAMQP instance (host/port/username/password from its
+  # connection URL - CloudAMQP gives one AMQP URL, split it into these four the first time this
+  # is actually deployed). Not yet provisioned - see docs/deploy/render.md.
+  - type: web
+    name: aerostay-flight
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: flight-service
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  - type: web
+    name: aerostay-hotel
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: hotel-service
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  - type: web
+    name: aerostay-booking
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: booking-service
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://aerostay-jeferson0306s-projects.vercel.app
+
+  - type: web
+    name: aerostay-payment
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: payment-service
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+
+  - type: web
+    name: aerostay-notification
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile.railway
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_MODULE: notification-service
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+
+  # --- Out of scope (ADR 0019): search-service (OpenSearch) and assistant-service (Ollama) -
+  # neither fits a free tier, both remain fully verified locally only.

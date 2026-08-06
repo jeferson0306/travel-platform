@@ -1,0 +1,86 @@
+# Local LLM runtime backing assistant-service (ROADMAP M19, docs/adr/0018-engineering-assistant.md).
+# Mirrors docker-compose's ollama service - single instance, persistent volume for downloaded
+# models. Memory sizing here is a starting point extrapolated from the ~5GB the llama3:latest
+# model actually used in local dev-mode testing (ADR 0018), not independently measured on this
+# manifest under kind - see the ADR for what was and wasn't verified for this milestone.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-data
+  namespace: travel-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: travel-platform
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: ollama }
+  template:
+    metadata:
+      labels: { app: ollama }
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: data
+              mountPath: /root/.ollama
+          resources:
+            requests: { cpu: 500m, memory: 2Gi }
+            limits: { cpu: 2000m, memory: 6Gi }
+          readinessProbe:
+            tcpSocket: { port: 11434 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 11434 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: ollama-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # assistant-service's OLLAMA_BASE_URL is http://ollama:11434 under %prod.
+  name: ollama
+  namespace: travel-platform
+spec:
+  selector: { app: ollama }
+  ports:
+    - port: 11434
+      targetPort: 11434
+---
+# Pulls the default model via Ollama's own HTTP API - same one-shot bootstrap pattern as
+# rabbitmq-init/mongodb-init (infrastructure/kubernetes/base/infra/rabbitmq.yaml,
+# infrastructure/kubernetes/base/infra/mongodb.yaml). Genuinely slow the first time (~4.7GB).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-init
+  namespace: travel-platform
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: ollama-init
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              curl -s -X POST http://ollama:11434/api/pull -d '{"model": "llama3:latest", "stream": false}'

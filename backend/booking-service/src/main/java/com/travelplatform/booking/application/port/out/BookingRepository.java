@@ -2,6 +2,8 @@ package com.travelplatform.booking.application.port.out;
 
 import com.travelplatform.booking.domain.booking.Booking;
 import com.travelplatform.booking.domain.booking.BookingId;
+import com.travelplatform.booking.domain.booking.TravelerId;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -14,4 +16,7 @@ public interface BookingRepository {
     void save(Booking booking);
 
     Optional<Booking> findById(BookingId id);
+
+    /** Most recent first. */
+    List<Booking> findByTravelerId(TravelerId travelerId);
 }

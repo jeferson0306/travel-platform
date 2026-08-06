@@ -1,8 +1,18 @@
 name: travel-platform
 
-# Base local infrastructure for Phase 0. Application services (identity-service,
-# booking-service, ...) are added to this file as they are built, each in its
-# own compose "profile" so the full stack does not have to run at once.
+# Base local infrastructure (Mongo, RabbitMQ, Redis, OpenSearch, LocalStack) plus,
+# under the "apps" profile, all eight backend services - a full local run of the
+# platform, built for M16's load/chaos testing (ROADMAP, docs/adr/0015-load-and-chaos-testing.md).
+# The infra services always start with `make up`; the app services only start
+# with `make apps-up` (`docker compose --profile apps up`), so day-to-day
+# development (each service via `quarkus:dev`) is unaffected.
+#
+# Prerequisites for `make apps-up`:
+#   1. `mvn -f backend/pom.xml package -DskipTests` - the app Dockerfiles copy
+#      target/quarkus-app/, they do not build from source.
+#   2. `terraform -chdir=infrastructure/terraform/environments/local apply` -
+#      provisions the booking-receipts S3 bucket in LocalStack (ADR 0008/0009);
+#      booking-service's health check will fail without it.
 #
 # Usage: make up   (see root Makefile)
 
@@ -21,7 +31,9 @@ services:
     # docs/adr/0003-use-mongodb-as-primary-database.md.
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
-      - "27017:27017"
+      # Host-side 27018, not the default 27017 - avoids colliding with a locally-installed
+      # MongoDB. Containers still reach it as mongodb:27017 over the compose network.
+      - "27018:27017"
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -54,7 +66,9 @@ services:
     container_name: travel-platform-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      # Host-side 6380, not the default 6379 - a very common local/other-project Redis port to
+      # collide with. Containers still reach it as redis:6379 over the compose network.
+      - "6380:6379"
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -64,49 +78,65 @@ services:
     networks:
       - travel-platform
 
-  kafka:
-    image: apache/kafka:3.8.0
-    container_name: travel-platform-kafka
+  rabbitmq:
+    # Replaces Kafka as the messaging backbone (see docs/adr/0004-use-kafka-for-event-driven-communication.md's
+    # 2026-08-05 addendum) - management plugin included so the UI at :15672 doubles as ops
+    # tooling, matching what a real deploy would use (e.g. CloudAMQP, whose free tier is the
+    # reason this migration is possible without a paid host).
+    image: rabbitmq:4-management-alpine
+    container_name: travel-platform-rabbitmq
     restart: unless-stopped
     ports:
-      - "9092:9092"
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:19092,CONTROLLER://:19093,PLAINTEXT_HOST://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:19093
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      - "5672:5672" # AMQP 0-9-1
+      - "15672:15672" # management UI (guest/guest, matches every other local-dev default credential in this repo)
     volumes:
-      - kafka_data:/var/lib/kafka/data
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1",
-        ]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 10s
       retries: 10
     networks:
       - travel-platform
 
-  kafka-init:
-    image: apache/kafka:3.8.0
-    container_name: travel-platform-kafka-init
+  rabbitmq-init:
+    # Pre-declares the DLQ queues (see infrastructure/rabbitmq/declare-dlq-queues.sh) - every
+    # other queue/exchange in the topology self-declares from each service's own incoming/outgoing
+    # channel config (queue.declare/exchange.declare default to true), but the DLQ queues have no
+    # in-app consumer, so nothing would otherwise create them before a service tries to publish to
+    # one - mirrors the old kafka-init "create every topic upfront" pattern.
+    image: curlimages/curl:8.10.1
+    container_name: travel-platform-rabbitmq-init
     restart: "no"
     depends_on:
-      kafka:
+      rabbitmq:
         condition: service_healthy
-    entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
+    entrypoint: ["/bin/sh", "/scripts/declare-dlq-queues.sh"]
     volumes:
-      - ../kafka/create-topics.sh:/scripts/create-topics.sh:ro
+      - ../rabbitmq/declare-dlq-queues.sh:/scripts/declare-dlq-queues.sh:ro
+    networks:
+      - travel-platform
+
+  opensearch:
+    image: opensearchproject/opensearch:3.7.0
+    container_name: travel-platform-opensearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # Security plugin disabled for local dev, matching the test Testcontainers setup
+      # (org.opensearch:opensearch-testcontainers default) - see
+      # docs/adr/0012-search-service-opensearch.md. Never disable it in a real environment.
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - travel-platform
 
@@ -126,11 +156,323 @@ services:
     networks:
       - travel-platform
 
+  toxiproxy:
+    # Chaos-testing only (ROADMAP M16, docs/adr/0015-load-and-chaos-testing.md) - sits between
+    # gateway and one backend so a toxic (latency, connection cut, ...) can be injected on demand
+    # via its HTTP API (port 8474), without touching any application code. Never wired into
+    # gateway's default upstream config - see testing/chaos/README.md for how a proxy is created
+    # and pointed at on demand.
+    profiles: ["chaos"]
+    image: shopify/toxiproxy:2.1.4
+    container_name: travel-platform-toxiproxy
+    restart: unless-stopped
+    ports:
+      - "8474:8474"
+    networks:
+      - travel-platform
+
+  identity-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/identity-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: identity-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  booking-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/booking-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: booking-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      RABBITMQ_HOST: rabbitmq
+      # LocalStack, not real AWS - see docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md.
+      BOOKING_AWS_S3_ENDPOINT_OVERRIDE: http://localstack:4566
+      BOOKING_AWS_S3_ACCESS_KEY_ID: test
+      BOOKING_AWS_S3_SECRET_ACCESS_KEY: test
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      rabbitmq-init:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  flight-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/flight-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: flight-service
+    restart: unless-stopped
+    ports:
+      # Host-side 18083, not 8083 - a common port other local tools grab. Containers still reach
+      # it as flight-service:8083 over the compose network (matching gateway's upstream URL).
+      - "18083:8083"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  hotel-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/hotel-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: hotel-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  payment-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/payment-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8085/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  notification-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/notification-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/?replicaSet=rs0
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      rabbitmq-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8086/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  search-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/search-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: search-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      # OPENSEARCH_HOST/PORT default to "opensearch"/9200 already (application.yml %prod),
+      # matching this compose file's opensearch service name/port - no override needed.
+    depends_on:
+      rabbitmq-init:
+        condition: service_completed_successfully
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8087/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  gateway:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/gateway
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379
+      # gateway.upstream.* already default to http://<container-name>:<port> under %prod
+      # (application.yml), matching every service name above exactly - no override needed.
+    depends_on:
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      flight-service:
+        condition: service_started
+      hotel-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      search-service:
+        condition: service_started
+      assistant-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
+  ollama:
+    # Local LLM runtime backing assistant-service (ROADMAP M19, docs/adr/0018-engineering-assistant.md) -
+    # chosen specifically because it's free/local, unlike a paid hosted LLM API. Not a chaos-testing-only
+    # opt-in like toxiproxy: it's a real dependency of a real "apps" service, so it lives in the same
+    # profile.
+    profiles: ["apps"]
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      # The ollama/ollama image ships neither wget nor curl - only the ollama binary itself
+      # (confirmed on a real container: `command -v wget curl` both fail). `ollama list` hits the
+      # local server over its own client, so it's a real - and available - health signal.
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - travel-platform
+
+  ollama-init:
+    # Pulls the model assistant-service defaults to (llama3:latest) via Ollama's own HTTP API -
+    # same one-shot bootstrap pattern as mongodb-init/rabbitmq-init. ~4.7GB, so this step is genuinely
+    # slow the first time (image layer is cached afterward, in the ollama_data volume).
+    profiles: ["apps"]
+    image: curlimages/curl:8.11.1
+    container_name: ollama-init
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        curl -s -X POST http://ollama:11434/api/pull -d '{"model": "llama3:latest", "stream": false}'
+    networks:
+      - travel-platform
+
+  assistant-service:
+    profiles: ["apps"]
+    build:
+      context: ../../backend/assistant-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: assistant-service
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - travel-platform
+
 networks:
   travel-platform:
     name: travel-platform
 
 volumes:
   mongodb_data:
-  kafka_data:
+  rabbitmq_data:
   localstack_data:
+  opensearch_data:
+  ollama_data:

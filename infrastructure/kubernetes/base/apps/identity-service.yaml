@@ -1,0 +1,76 @@
+# ROADMAP M17 (docs/adr/0016-kubernetes-manifests.md). Resource requests/limits are sized from
+# the idle memory `docker stats` actually measured against the running docker-compose stack
+# (~140MiB) plus headroom for JVM-mode Quarkus's steady-state growth (heap, JIT, class metadata) -
+# not arbitrary. CPU requests/limits are conservative JVM-mode defaults: M16's load tests measured
+# request latency, not container CPU usage, so there is no measured CPU number to size from yet -
+# the HPA below is what actually protects against an undersized CPU request once real traffic
+# shows up, see ADR 0016.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: travel-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: identity-service }
+  template:
+    metadata:
+      labels: { app: identity-service }
+    spec:
+      # Kubernetes auto-injects <SERVICE>_PORT/<SERVICE>_HOST env vars for every Service in
+      # the namespace (legacy Docker-links behavior) - search-service crashed on a real kind run
+      # because the opensearch Service produced OPENSEARCH_PORT=tcp://10.x.x.x:9200, colliding
+      # with and overriding this app's own OPENSEARCH_PORT=9200 expectation (ADR 0016). DNS
+      # (the Service name itself) is how every service already finds the others, so these
+      # injected vars are pure risk with no upside - disabled everywhere, not just search-service.
+      enableServiceLinks: false
+      containers:
+        - name: identity-service
+          image: travel-platform-identity-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - { name: MONGO_URI, value: "mongodb://mongodb:27017/?replicaSet=rs0" }
+          resources:
+            requests: { cpu: 100m, memory: 224Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8081 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8081 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # gateway's GATEWAY_UPSTREAM_IDENTITY %prod default is http://identity-service:8081.
+  name: identity-service
+  namespace: travel-platform
+spec:
+  selector: { app: identity-service }
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: identity-service
+  namespace: travel-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: identity-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

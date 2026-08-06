@@ -20,7 +20,12 @@ public final class FlightDocumentMapper {
                 .append("arrivalAt", Date.from(flight.arrivalAt()))
                 .append("priceAmount", flight.price().amount().toPlainString())
                 .append("priceCurrency", flight.price().currency())
-                .append("availableSeats", flight.availableSeats());
+                .append("availableSeats", flight.availableSeats())
+                .append("airline", flight.airline())
+                .append("airlineCode", flight.airlineCode())
+                .append("flightNumber", flight.flightNumber())
+                .append("cabinClass", flight.cabinClass())
+                .append("stops", flight.stops());
     }
 
     public static Flight toDomain(Document document) {
@@ -33,6 +38,11 @@ public final class FlightDocumentMapper {
                 new Money(
                         new BigDecimal(document.getString("priceAmount")),
                         document.getString("priceCurrency")),
-                document.getInteger("availableSeats"));
+                document.getInteger("availableSeats"),
+                document.getString("airline"),
+                document.getString("airlineCode"),
+                document.getString("flightNumber"),
+                document.getString("cabinClass"),
+                document.getInteger("stops", 0));
     }
 }

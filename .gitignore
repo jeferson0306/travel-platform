@@ -18,6 +18,8 @@
 !backend/identity-service/src/main/resources/publicKey.pem
 !backend/*-service/src/main/resources/publicKey.pem
 !backend/*-service/src/test/resources/privateKey.pem
+!backend/gateway/src/main/resources/publicKey.pem
+!backend/gateway/src/test/resources/privateKey.pem
 secrets/
 **/secrets/**
 *.tfvars

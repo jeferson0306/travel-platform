@@ -3,6 +3,12 @@ quarkus:
     name: booking-service
   http:
     port: 8082
+    # CORS is handled solely at the gateway (backend/gateway/src/main/resources/application.yml)
+    # - the only browser-facing surface. Quarkus's declarative CORS here would evaluate the Origin
+    # header the gateway forwards along on every proxied request and reject it with 403 before
+    # this service ever ran the request, since these internal calls aren't real browser requests
+    # (observed directly: it was the actual root cause of a gateway 403 mis-diagnosed as a gateway
+    # bug - each service's own CORS filter, not the gateway, was rejecting the proxied request).
   mongodb:
     database: booking
   smallrye-openapi:
@@ -18,11 +24,13 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
-      # Never needed: tests use the in-memory connector (see %test below),
-      # and local/prod use the real broker from docker-compose/KAFKA_BOOTSTRAP_SERVERS.
-      # Leaving Dev Services on would start a second, unused Kafka per test run.
+      # Never needed: tests use the in-memory connector (see %test below), and quarkus:dev/prod
+      # use the real broker from docker-compose - its host-mapped port (5672) matches the
+      # connector's own default (host=localhost, port=5672), so no %dev override is needed either,
+      # same reasoning the old Kafka config relied on. Leaving Dev Services on would start a
+      # second, unused RabbitMQ per test run.
       enabled: false
 
 booking:
@@ -35,36 +43,55 @@ booking:
       # docs/adr/0008-use-localstack-and-terraform-for-aws-resources.md.
 
 mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
   messaging:
+    # Topology: each publishing service owns one topic exchange (named after its outgoing
+    # channel, e.g. "payment-events"); each consumer declares its own durable queue bound to
+    # that exchange with a routing key matching the specific event type it wants - the same
+    # shape as the old "topic = eventType, one consumer group per topic" Kafka model, just
+    # expressed as exchange+routing-key+queue instead of topic+partition+consumer-group. See
+    # docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum.
     incoming:
       payment-authorized:
-        connector: smallrye-kafka
-        topic: payment-authorized
-        group.id: booking-payment-outcome
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: payment-events
+        queue:
+          name: payment-authorized.booking-payment-outcome
+        routing-keys: payment-authorized
       payment-failed:
-        connector: smallrye-kafka
-        topic: payment-failed
-        group.id: booking-payment-outcome
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: payment-events
+        queue:
+          name: payment-failed.booking-payment-outcome
+        routing-keys: payment-failed
     outgoing:
       booking-events:
-        connector: smallrye-kafka
-        # Overridden per-message by OutboxRelay (topic = the event's eventType) - this
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        # Overridden per-message by OutboxRelay (routing key = the event's eventType) - this
         # default only satisfies config validation and is never actually used.
-        topic: booking-events-default
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        default-routing-key: booking-events-default
       payment-authorized-dlq:
-        connector: smallrye-kafka
-        topic: payment-authorized.booking-payment-outcome.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        # Empty exchange name = RabbitMQ's default exchange, which every queue is implicitly
+        # bound to under its own name - publishes straight to the DLQ queue pre-declared by
+        # infrastructure/rabbitmq/declare-dlq-queues.sh, no topic exchange needed for a
+        # fixed, single-purpose destination like this one.
+        exchange:
+          name: ""
+        default-routing-key: payment-authorized.booking-payment-outcome.dlq
       payment-failed-dlq:
-        connector: smallrye-kafka
-        topic: payment-failed.booking-payment-outcome.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: payment-failed.booking-payment-outcome.dlq
 
 "%dev":
   quarkus:
@@ -114,6 +141,7 @@ mp:
   quarkus:
     mongodb:
       connection-string: ${MONGO_URI}
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}

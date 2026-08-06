@@ -27,6 +27,8 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 public class HotelResource {
 
+    private static final int DEFAULT_STAR_RATING = 3;
+
     private final CreateHotelUseCase createHotelUseCase;
     private final SearchHotelsUseCase searchHotelsUseCase;
 
@@ -54,7 +56,15 @@ public class HotelResource {
                                 request.city(),
                                 request.pricePerNightAmount(),
                                 request.pricePerNightCurrency(),
-                                request.availableRooms()));
+                                request.availableRooms(),
+                                request.address(),
+                                request.starRating() == null
+                                        ? DEFAULT_STAR_RATING
+                                        : request.starRating(),
+                                request.amenities() == null ? List.of() : request.amenities(),
+                                request.description(),
+                                request.reviewScore(),
+                                request.reviewCount()));
         return Response.status(Response.Status.CREATED)
                 .entity(new CreatedResponse(id.value().toString()))
                 .build();

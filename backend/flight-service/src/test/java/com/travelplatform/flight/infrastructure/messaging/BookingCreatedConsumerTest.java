@@ -55,7 +55,12 @@ class BookingCreatedConsumerTest {
                                 departure.plus(10, ChronoUnit.HOURS),
                                 new BigDecimal("450.00"),
                                 "EUR",
-                                availableSeats))
+                                availableSeats,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0))
                 .post("/api/v1/flights")
                 .then()
                 .statusCode(201)

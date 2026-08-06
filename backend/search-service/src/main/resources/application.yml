@@ -1,0 +1,104 @@
+quarkus:
+  application:
+    name: search-service
+  http:
+    port: 8087
+    # CORS is handled solely at the gateway (backend/gateway/src/main/resources/application.yml)
+    # - the only browser-facing surface. Quarkus's declarative CORS here would evaluate the Origin
+    # header the gateway forwards along on every proxied request and reject it with 403 before
+    # this service ever ran the request, since these internal calls aren't real browser requests
+    # (observed directly: it was the actual root cause of a gateway 403 mis-diagnosed as a gateway
+    # bug - each service's own CORS filter, not the gateway, was rejecting the proxied request).
+  smallrye-openapi:
+    path: /openapi
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  rabbitmq:
+    devservices:
+      # Tests use the in-memory connector (see %test below).
+      enabled: false
+
+# No MongoDB config here on purpose - this service has no MongoDB at all, see
+# docs/adr/0012-search-service-opensearch.md.
+search:
+  opensearch:
+    host: localhost
+    port: 9200
+    scheme: http
+
+mp:
+  messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
+    incoming:
+      flight-created:
+        connector: smallrye-rabbitmq
+        exchange:
+          name: flight-events
+        queue:
+          name: flight-created.search-indexer
+        routing-keys: flight-created
+      hotel-created:
+        connector: smallrye-rabbitmq
+        exchange:
+          name: hotel-events
+        queue:
+          name: hotel-created.search-indexer
+        routing-keys: hotel-created
+    outgoing:
+      flight-created-dlq:
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: flight-created.search-indexer.dlq
+      hotel-created-dlq:
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: hotel-created.search-indexer.dlq
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+  mp:
+    messaging:
+      incoming:
+        flight-created:
+          connector: smallrye-in-memory
+        hotel-created:
+          connector: smallrye-in-memory
+      outgoing:
+        flight-created-dlq:
+          connector: smallrye-in-memory
+        hotel-created-dlq:
+          connector: smallrye-in-memory
+
+"%prod":
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}
+  search:
+    opensearch:
+      host: ${OPENSEARCH_HOST:opensearch}
+      port: ${OPENSEARCH_PORT:9200}
+      scheme: ${OPENSEARCH_SCHEME:http}

@@ -44,13 +44,13 @@ reaction to `booking-cancelled` - see docs/events/booking-events.md).
 | `amount`     | object (`Money`)     | Amount refunded                 |
 | `occurredOn` | timestamp            | When the refund happened        |
 
-No consumer exists yet. Planned: `notification-service` (refund confirmation
-email, once it exists - M12).
+No consumer exists yet - a refund-confirmation notification is a candidate
+for a future milestone, not scoped to any so far.
 
 ## Delivery guarantees
 
 At-least-once, same transactional-outbox mechanism as booking-service (ADR 0007) - `payment-service` writes its own `payments` + `outbox` collections in
-one MongoDB transaction, relayed to Kafka by its own `OutboxRelay`.
+one MongoDB transaction, relayed to RabbitMQ by its own `OutboxRelay`.
 
 ## Failure story
 
@@ -62,7 +62,7 @@ consumer group `booking-payment-outcome`):
   (`BookingAlreadyConfirmedException`/`BookingAlreadyCancelledException`),
   which the consumer treats as a no-op.
 - **Technical failure**: recorded in a `retry_tasks` collection, retried
-  with exponential backoff, moved to a dead-letter Kafka topic
+  with exponential backoff, moved to a dead-letter RabbitMQ queue
   (`payment-authorized.booking-payment-outcome.dlq`,
   `payment-failed.booking-payment-outcome.dlq`) after too many attempts -
   same Mongo-backed pattern as M10 (see the ADR 0004 M10 addendum).

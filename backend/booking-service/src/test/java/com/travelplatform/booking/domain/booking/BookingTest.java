@@ -18,7 +18,8 @@ class BookingTest {
     @Test
     void createRaisesBookingCreatedAndStartsPending() {
         var travelerId = new TravelerId(UUID.randomUUID());
-        var reference = new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2);
+        var reference =
+                new BookingReference(ItemType.FLIGHT, UUID.randomUUID().toString(), 2, null);
 
         var booking = Booking.create(travelerId, TRAVELER_EMAIL, reference, AMOUNT);
 
@@ -45,7 +46,7 @@ class BookingTest {
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
                         TRAVELER_EMAIL,
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         AMOUNT);
         booking.pullDomainEvents();
 
@@ -66,7 +67,7 @@ class BookingTest {
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
                         TRAVELER_EMAIL,
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         AMOUNT);
         booking.cancel();
 
@@ -80,7 +81,7 @@ class BookingTest {
                 Booking.create(
                         travelerId,
                         TRAVELER_EMAIL,
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         AMOUNT);
         booking.pullDomainEvents();
 
@@ -105,7 +106,7 @@ class BookingTest {
                 Booking.create(
                         new TravelerId(UUID.randomUUID()),
                         TRAVELER_EMAIL,
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         AMOUNT);
         booking.confirm();
 
@@ -119,7 +120,7 @@ class BookingTest {
                         BookingId.newId(),
                         new TravelerId(UUID.randomUUID()),
                         TRAVELER_EMAIL,
-                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1),
+                        new BookingReference(ItemType.HOTEL, UUID.randomUUID().toString(), 1, null),
                         AMOUNT,
                         BookingStatus.PENDING,
                         Instant.now());

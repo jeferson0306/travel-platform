@@ -1,0 +1,79 @@
+quarkus:
+  application:
+    name: gateway
+  http:
+    port: 8080
+    # Quarkus's built-in declarative CORS (quarkus.http.cors) is disabled on purpose. Its filter
+    # (io.quarkus.vertx.http.runtime.cors.CORSFilter#isMethodAllowed) rejected real, non-preflight
+    # requests with 403 even with the full method list configured - reproduced identically as a
+    # comma-string, as a YAML sequence, and with methods set to the "*" wildcard (which per the
+    # filter's own source should short-circuit isMethodAllowed to true). Confirmed the built jar
+    # actually contained each config, ruled out stale builds/env overrides/multiple listeners - a
+    # genuine framework-level bug on the pinned Quarkus version, not a config mistake. CORS is
+    # handled explicitly in ProxyRoutes instead: full control, fully testable, no dependency on a
+    # misbehaving framework internal. See gateway.cors.allowed-origins below.
+  smallrye-health:
+    root-path: /health
+  log:
+    console:
+      json:
+        enabled: true
+  otel:
+    # See identity-service/src/main/resources/application.yml for the rationale -
+    # no collector locally, traceId/spanId still populate the logs.
+    traces:
+      exporter: none
+  # No quarkus.redis.hosts here on purpose: leaving it unset lets Redis Dev Services provision an
+  # ephemeral container automatically for %dev/%test, same as MongoDB/Kafka elsewhere in this
+  # platform - only %prod below points at a real Redis.
+
+mp:
+  jwt:
+    verify:
+      issuer: travel-platform-identity
+      publickey:
+        location: publicKey.pem
+
+gateway:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  rate-limit:
+    requests-per-minute: 120
+  upstream:
+    identity: ${GATEWAY_UPSTREAM_IDENTITY:http://localhost:8081}
+    booking: ${GATEWAY_UPSTREAM_BOOKING:http://localhost:8082}
+    flight: ${GATEWAY_UPSTREAM_FLIGHT:http://localhost:8083}
+    hotel: ${GATEWAY_UPSTREAM_HOTEL:http://localhost:8084}
+    payment: ${GATEWAY_UPSTREAM_PAYMENT:http://localhost:8085}
+    notification: ${GATEWAY_UPSTREAM_NOTIFICATION:http://localhost:8086}
+    search: ${GATEWAY_UPSTREAM_SEARCH:http://localhost:8087}
+    assistant: ${GATEWAY_UPSTREAM_ASSISTANT:http://localhost:8088}
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%test":
+  quarkus:
+    log:
+      console:
+        json:
+          enabled: false
+
+"%prod":
+  quarkus:
+    redis:
+      hosts: ${REDIS_URL}
+  gateway:
+    upstream:
+      identity: http://identity-service:8081
+      booking: http://booking-service:8082
+      flight: http://flight-service:8083
+      hotel: http://hotel-service:8084
+      payment: http://payment-service:8085
+      notification: http://notification-service:8086
+      search: http://search-service:8087
+      assistant: http://assistant-service:8088

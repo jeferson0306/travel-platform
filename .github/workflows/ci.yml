@@ -59,6 +59,9 @@ jobs:
             hotel-service,
             payment-service,
             notification-service,
+            search-service,
+            assistant-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:
@@ -86,6 +89,9 @@ jobs:
             hotel-service,
             payment-service,
             notification-service,
+            search-service,
+            assistant-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:
@@ -108,6 +114,9 @@ jobs:
             hotel-service,
             payment-service,
             notification-service,
+            search-service,
+            assistant-service,
+            gateway,
           ]
     runs-on: ubuntu-latest
     steps:

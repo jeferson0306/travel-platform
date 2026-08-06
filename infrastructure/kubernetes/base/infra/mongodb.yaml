@@ -1,0 +1,89 @@
+# Mirrors infrastructure/docker/docker-compose.yml's mongodb service exactly - single-node
+# replica set (multi-document transactions need one, ADR 0007), no auth (not exposed outside the
+# cluster). Memory request/limit below is the idle footprint actually measured with
+# `docker stats` against the running docker-compose stack (~96MiB), not a guess - see ADR 0016.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-data
+  namespace: travel-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: travel-platform
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # single PVC, RWO - a rolling update would need two pods holding the same volume
+  selector:
+    matchLabels: { app: mongodb }
+  template:
+    metadata:
+      labels: { app: mongodb }
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          args: ["--replSet", "rs0", "--bind_ip_all"]
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          resources:
+            requests: { cpu: 200m, memory: 256Mi }
+            limits: { cpu: 1000m, memory: 768Mi }
+          readinessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"] }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"] }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: mongodb-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # Name must stay "mongodb" - every service's %prod MONGO_URI (mongodb://mongodb:27017/...)
+  # hardcodes it, same as docker-compose's container_name.
+  name: mongodb
+  namespace: travel-platform
+spec:
+  selector: { app: mongodb }
+  ports:
+    - port: 27017
+      targetPort: 27017
+---
+# Replaces docker-compose's mongodb-init one-shot container: initiates the replica set once,
+# idempotently (same mongosh try/catch as the compose version).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-init
+  namespace: travel-platform
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mongodb-init
+          image: mongo:7.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - >
+              mongosh --host mongodb --quiet --eval '
+              try { rs.status(); print("replica set already initiated"); }
+              catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]}); print("replica set initiated"); }
+              '

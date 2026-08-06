@@ -44,7 +44,12 @@ class CreateFlightServiceTest {
                                 arrival,
                                 new BigDecimal("450.00"),
                                 "EUR",
-                                120));
+                                120,
+                                "TAP Air Portugal",
+                                "TP",
+                                "TP123",
+                                "ECONOMY",
+                                0));
 
         assertThat(id).isNotNull();
         verify(flightRepository).save(any(Flight.class));

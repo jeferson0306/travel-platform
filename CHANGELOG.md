@@ -8,8 +8,76 @@ and this project uses milestone-based versioning as defined in
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gateway rejected every real state-changing browser request with a 403** (register, login,
+  book, cancel - anything but a plain GET). Root cause was two-fold: (1) each of the 7 internal
+  backend services (identity, booking, flight, hotel, payment, notification, search, assistant)
+  ran Quarkus's own declarative CORS filter with `methods: GET,OPTIONS` - missing POST/PUT/PATCH
+  /DELETE - so it rejected the request the gateway forwarded on its behalf, since that filter
+  evaluates the `Origin` header regardless of who sent the request; (2) CORS is a browser-only
+  concept and the gateway is the only browser-facing surface, so per-service CORS was never
+  correct architecturally, independent of the methods gap. Fixed by removing CORS entirely from
+  the 8 internal services and implementing it once, explicitly, in the gateway's own
+  `ProxyRoutes` (an allow-list match against `gateway.cors.allowed-origins`, plus an explicit
+  OPTIONS preflight route) - full control, fully testable, no dependency on Quarkus's declarative
+  CORS filter (which separately proved unreliable on the gateway itself: identical 403s with a
+  comma-string methods list, a YAML-list, and even a `"*"` wildcard). Also fixed a related,
+  previously-undetected gateway NPE-causing-502: `ProxyRoutes.forward` crashed when an upstream
+  response had a null body (e.g. a 204). Both bugs were invisible to all prior E2E verification
+  in this repo because it used `curl` without an `Origin` header, which never triggers CORS
+  enforcement at all - only a real browser (or `curl -H "Origin: ..."`) does. Verified via a real
+  browser: register -> 201, with `Access-Control-Allow-Origin` on the actual response, not just
+  the preflight.
+
+### Changed
+
+- **Messaging backbone migrated from Kafka to RabbitMQ** across all six
+  messaging-dependent services (booking, flight, hotel, payment,
+  notification, search) - see
+  [docs/adr/0004-use-kafka-for-event-driven-communication.md](docs/adr/0004-use-kafka-for-event-driven-communication.md)'s
+  2026-08-05 addendum. Driven by hosting cost (no free managed Kafka
+  anywhere vs. CloudAMQP's genuinely free RabbitMQ tier), not a
+  functional gap - the topology (topic exchange per publisher, routing
+  key per event type, one durable queue per consumer) is a direct
+  mapping of the old topic/consumer-group model. Only the four
+  `OutboxRelay` classes needed a Java change (Kafka's dynamic per-message
+  topic metadata → RabbitMQ's per-message routing-key metadata); every
+  consumer, every DLQ publisher, and the whole test suite were unchanged
+  (tests already ran against `smallrye-in-memory`, never a real broker).
+  `infrastructure/docker/docker-compose.yml`'s `kafka`/`kafka-init`
+  became `rabbitmq`/`rabbitmq-init`. Verified end-to-end against a real
+  local RabbitMQ: a booking decremented flight inventory by exactly the
+  booked quantity, was authorized, confirmed, and triggered a
+  notification email - the full choreography saga, unmodified behavior.
+
 ### Added
 
+- Public live `/status` dashboard: polls every backend service's own
+  SmallRye `/health` endpoint directly from the browser (MongoDB,
+  RabbitMQ, Redis dependency checks included), plus a static architecture pipeline
+  diagram and engineering highlights - all 9 services now expose CORS on
+  `/health` for this. Frontend deployed to Vercel
+  (`aerostay-jeferson0306s-projects.vercel.app`). A draggable 3D airplane
+  hero section (Three.js + React Three Fiber, GSAP ScrollTrigger entrance)
+  with a revolved-profile fuselage and tapered winglet wings.
+- Richer flight/hotel search results and booking details: `flight-service`
+  gains `airline`, `airlineCode`, `flightNumber`, `cabinClass`, `stops`;
+  `hotel-service` gains `address`, `starRating`, `amenities`,
+  `description`, `reviewScore`, `reviewCount` - all additive/optional
+  fields, no existing endpoint contract broken. `booking-service` gains an
+  optional `itemSummary` (trusted client input, same pattern as
+  `amount`/`currency`/`travelerEmail`) so "My bookings" and the booking
+  confirmation page can show what was actually booked instead of a bare
+  `itemId`. Frontend redesigned the flight/hotel result cards (duration,
+  cabin class, stops, star rating, amenities, review score) and added
+  `formatMoney`/`formatDate`/`formatDuration` (`lib/format.ts`) and a
+  purely decorative per-city gradient theme for hotel cards
+  (`lib/destinationTheme.ts`, no photo storage exists). `search-service`'s
+  own projection intentionally does not carry the new fields yet - the
+  frontend queries flight-service/hotel-service directly, not
+  search-service (documented gap, see `docs/events/flight-events.md` and
+  `hotel-events.md`).
 - Repository scaffolding: branching model, contribution guidelines, security
   policy, ADR process, base local infrastructure (MongoDB, Redis, Kafka,
   LocalStack).
@@ -93,3 +161,197 @@ and this project uses milestone-based versioning as defined in
   events and has no transactional outbox - nothing downstream reacts to "a
   notification was sent." Same Mongo-backed idempotency/retry/DLQ shape as
   M10/M11. `ci.yml`'s matrix now covers all six services.
+- `search-service`: seventh microservice, and the first with no MongoDB at
+  all (M13, ADR 0012). `flight-service` and `hotel-service` each gain their
+  first domain event (`FlightCreated`/`HotelCreated`, raised by their
+  existing `create()` factory, published for free via the same generic
+  outbox relay every other service already uses). `search-service` consumes
+  both and indexes into OpenSearch - its only datastore, since every
+  document it holds is a rebuildable projection of flight-service's/
+  hotel-service's own data, not something worth a second Mongo instance for.
+  Exposes public `GET /api/v1/search/flights` (route or `q=` prefix
+  autocomplete) and `GET /api/v1/search/hotels` (city or `q=` prefix
+  autocomplete) - no authentication anywhere, the platform's first fully
+  public service. Idempotency is free here: indexing by id is an upsert, so
+  duplicate Kafka deliveries need no claim collection, unlike every other
+  consumer in this platform. Retry/DLQ bookkeeping (`retry_tasks`/
+  `dead_letters`) lives in OpenSearch indices instead of MongoDB
+  collections, same shape otherwise. Tests run against a real OpenSearch via
+  Testcontainers (`opensearch-testcontainers`), since this Quarkus version
+  has no Dev Services support for it. `docker-compose.yml` gains an
+  `opensearch` service; `ci.yml`'s matrix now covers all seven services.
+- `gateway`: eighth microservice, closing Phase 3 (M14, ADR 0013). Single
+  entry point fronting every backend service: a generic reverse-proxy route
+  (`quarkus-reactive-routes` + Vert.x `WebClient`) forwards
+  method/headers/query/body verbatim to whichever service owns a path's
+  first segment after `/api/v1/`, no path rewriting. Redis-backed
+  fixed-window rate limiting (429 once exceeded) and a JWT fast-fail check
+  (401 for a present-but-invalid token; a missing token passes through
+  untouched) run before every proxy - both cheap protections against wasted
+  upstream work, not a duplicate authorization layer: every backend still
+  independently enforces its own `@RolesAllowed` rules exactly as before.
+  CORS is native Quarkus config, no custom code. No MongoDB, no Kafka - the
+  gateway is stateless except for Redis rate-limit counters. Unlike every
+  other service, has no hexagonal domain/application/infrastructure split
+  (nothing here is a business domain to protect from framework leakage).
+  Tests stand in for real backends with a stub HTTP server, exercising
+  forwarding correctness, status passthrough, rate limiting and JWT
+  rejection over real HTTP calls into a running instance. `ci.yml`'s matrix
+  now covers all eight services.
+- Fault tolerance (M15, ADR 0014), scoped to the two places a genuine
+  synchronous external dependency actually exists - an audit found no
+  synchronous inter-service REST calls anywhere else in the platform, since
+  it ended up fully event-driven (ADR 0004). `gateway`'s
+  `UpstreamProxyClient` now builds one SmallRye Fault Tolerance `Guard`
+  (the programmatic API, not annotations - a single annotated method would
+  share one circuit breaker across all seven backends) per backend segment,
+  giving each an independent timeout/circuit-breaker/bulkhead; only the
+  idempotent (GET/HEAD) path retries, since retrying a POST/PUT/PATCH/DELETE
+  could duplicate a side effect on the backend. `ProxyRoutes` maps
+  `CircuitBreakerOpenException`/`TimeoutException` to 503/504 instead of a
+  blanket 502. `search-service`'s three OpenSearch read methods gained
+  `@Timeout`/`@Retry` - not `index()`, which already has its own durable
+  retry/DLQ mechanism (ADR 0012) that stacking SmallRye retry on top of
+  would be redundant with. New `StubUpstreamResource` failure-injection
+  (configurable delay, to trigger a real timeout) and a dedicated
+  closed-port test resource (to trip the circuit breaker deterministically)
+  cover the new gateway behavior end to end.
+- Load & chaos testing (M16, ADR 0015): docker-compose gains an `apps`
+  profile wiring all 8 backend services together on one network with the
+  container names `gateway`'s upstream config already expects, and a
+  `chaos` profile adding Toxiproxy - both layered on the existing infra
+  services without touching the everyday `quarkus:dev` workflow. New
+  `Makefile` targets (`apps-build`/`apps-up`/`apps-down`/`apps-logs`/
+  `apps-ps`). k6 load scripts (`testing/load/k6/`) run against the real
+  stack via the official Docker image, no local install: `search-load.js`
+  (public read-only search, 20 VUs) and `booking-saga-load.js` (the full
+  register → login → create-booking journey, driving the whole
+  choreography saga end to end). Toxiproxy chaos experiment
+  (`testing/chaos/flight-service-latency.sh`) injects latency in front of
+  `flight-service` and confirms, against the real running gateway, that
+  M15's per-backend circuit breaker opens, fails fast, stays fully
+  isolated to `flight-service` (hotels/auth unaffected throughout), and
+  recovers automatically once the fault is removed. All results are
+  measured, not estimated, and written up in
+  `docs/runbooks/load-and-chaos-results.md`, including a real (not
+  hypothetical) finding about the gateway's per-IP rate limiter penalizing
+  many real clients that share one source IP.
+- Kubernetes manifests (M17, ADR 0016), closing Phase 4:
+  `infrastructure/kubernetes/` with a Kustomize base (Deployment + Service
+  - HPA per backend service, single-replica Mongo/Kafka/Redis/OpenSearch/
+    LocalStack with PVCs, one-shot init Jobs replacing docker-compose's
+    mongodb-init/kafka-init containers, reusing the same
+    `create-topics.sh` topic list) and a `local` overlay (gateway as
+    NodePort 30080 for kind's port mapping, machine-specific resource
+    trims). Readiness/liveness probes split onto `/health/ready` /
+    `/health/live` (built in M6 for exactly this). Deployed for real to a
+    local kind cluster and verified end-to-end through the gateway: full
+    register → login → create-flight → book flow, saga completion confirmed
+    in Mongo (CONFIRMED/AUTHORIZED/SENT), flight indexed into search via
+    in-cluster Kafka, and HPA observed organically scaling booking-service
+    and payment-service 1→2 replicas under real CPU load. Three genuine
+    Kubernetes-specific bugs were found only by running it and are fixed in
+    the manifests: auto-injected `<SERVICE>_PORT` env vars crashing
+    search-service (`enableServiceLinks: false` everywhere), the single-node
+    KRaft broker unable to reach its own controller through a ClusterIP
+    Service (headless + `publishNotReadyAddresses`), and docker-compose's
+    JVM-spawning Kafka healthcheck being too expensive as a liveness probe
+    (plain tcpSocket instead). Verification log:
+    `docs/runbooks/kubernetes-verification.md`. No production Java code
+    changed.
+- Repository AI-context layer (M18, ADR 0017), opening Phase 5:
+  `docs/context/` populated with four curated fact files
+  (`platform-overview.md`, `service-catalog.md`, `event-catalog.md`,
+  `conventions.md`) covering all 8 services, the booking saga, the full
+  API surface, every Kafka topic and its publishers/consumers, and the
+  rules any change must follow - hand-written and cited back to their
+  authoritative source in the code, not generated dumps or embeddings.
+  `docs/prompts/` gained five fill-in task templates (milestone workflow,
+  new microservice, new endpoint, new Kafka consumer, new ADR), each
+  encoding this platform's mandatory shape for that task and naming a
+  reference implementation to copy from. New root `AGENTS.md` entry point
+  routing to both, front-loading the golden rules (Git Flow with
+  confirmation-gated merges, the `NNNN - Sentence.` commit format,
+  events-only integration). No production code changed.
+- `assistant-service`: ninth microservice, the engineering assistant (M19,
+  ADR 0018). Hexagonal like every other service, no MongoDB/Kafka -
+  stateless, read-only, one synchronous external dependency (Ollama, the
+  third such dependency in this platform after gateway->backends and
+  search-service->OpenSearch, same `@Timeout`/`@Retry` shape, ADR 0014).
+  `POST /api/v1/assistant/ask` "stuffs" the entire docs/context/docs/prompts
+  corpus (bundled into the JAR at build time, ~7,000 tokens) into the LLM
+  system prompt on every call - no vector DB, the corpus is too small to
+  need one - and is gated to MANAGER/ADMIN/SUPER_ADMIN/SUPPORT like
+  payment-service's/notification-service's read endpoints. Backed by a
+  local Ollama runtime (free, matching this platform's local-first
+  posture: LocalStack, kind, Toxiproxy) - `llama3:latest` by default. A
+  real test against the actual model initially hallucinated a completely
+  unrelated answer; root cause was Ollama's default 2048-token context
+  window silently truncating the corpus, fixed by explicitly setting
+  `num_ctx=8192` on every request, after which two separate real
+  questions both came back correct and cited. `gateway` gained an eighth
+  upstream segment (`assistant`); `docker-compose.yml`'s `apps` profile
+  gained `ollama`/`ollama-init`/`assistant-service`, mirroring the
+  mongodb-init/kafka-init bootstrap pattern. Kubernetes manifests were
+  written and kustomize-validated but not live-deployed to `kind` this
+  round (unlike M17) - docker-compose is this milestone's verified
+  deployment target, documented as such in ADR 0018.
+- Public-facing polish (M20, ADR 0019), closing Phase 6: a minimal
+  `frontend/` (React 19, TypeScript, Vite, React Router) covering the
+  essential flow - register, log in, search flights/hotels, create a
+  booking, view a static confirmation - added and verified end to end
+  against the real stack (seeded real inventory, real booking, saga
+  confirmed `CONFIRMED`/`AUTHORIZED`/`SENT` in Mongo). No
+  GET-booking-by-id endpoint exists on the platform (a known gap since
+  ADR 0015), so the confirmation page says so instead of faking a status
+  poll. README rewritten with real screenshots from that run (not
+  mockups) and corrected several stale claims left over from early
+  planning (aspirational Grafana/Loki/Tempo/SonarQube tooling that was
+  never built, an outdated frontend stack list). Two real bugs surfaced
+  while seeding the demo data and fixed in place: `ollama`'s
+  docker-compose healthcheck used `wget`, which the `ollama/ollama` image
+  doesn't ship (fixed to `ollama list`); `gateway` silently detached from
+  the Docker network after repeated partial `docker compose up` calls in
+  one long session (fixed by recreating the container - Kubernetes's
+  `tcpSocket` probe for the same service was unaffected). Public backend
+  deployment scoped to the essential-flow services only (Kafka/saga
+  included; OpenSearch/`search-service` and Ollama/`assistant-service`
+  excluded - neither fits a genuinely free hosting tier) after evaluating
+  Render.com and Oracle Cloud Always Free and choosing a paid Railway
+  plan instead of a functionally reduced demo; a new
+  `backend/Dockerfile.railway` (multi-stage, builds Maven itself since
+  Railway's builder has no separate build step) supports it. MongoDB
+  Atlas free tier used for the deployed database. Deployment itself is
+  in progress as of this entry - see ROADMAP M20 and ADR 0019 for status.
+- Post-M20 polish: the demo-companion `frontend/` rebranded as
+  "Aerostay" with a Tailwind design system, a public marketing landing
+  page (live search widget hitting the real API), GSAP scroll
+  animations, Lucide icons, real button physicality (spring
+  hover/tap), a test-payment checkout modal, flight departure-date
+  filtering (new backend query param, `flight-service`), an
+  airport/city autocomplete (backed by a free public airports API for
+  flights, a curated known-city list for hotels since hotel search
+  needs an exact match against our own inventory), toast-based
+  human-readable error messages, and a booking-history page (new `GET
+/api/v1/bookings` endpoint). A minimal Vitest + Testing Library setup
+  was added for the frontend (previously zero test coverage) covering
+  the error-message logic and the two autocomplete components.
+
+### Security
+
+- `booking-service` previously trusted a client-supplied `travelerId`
+  on every endpoint (documented as a known gap since M8/ADR 0007) - any
+  caller who knew or guessed another traveler's id could list their
+  bookings, create a booking "as" them, or cancel any booking outright
+  (the cancel endpoint had no ownership check at all). Fixed:
+  `booking-service` now verifies a JWT on every endpoint
+  (`@Authenticated`, RS256 against identity-service's public key - the
+  same setup `flight-service`/`hotel-service` have had since M9) and
+  derives `travelerId` exclusively from the JWT subject; the
+  create/list/cancel endpoints no longer accept it as input at all. The
+  saga's own internal compensating cancel (payment-failed,
+  `PaymentFailedConsumer`/`RetryRelay`) is exempted from the ownership
+  check by design - it's system-initiated, not a user request, and has
+  no caller identity to check. `amount`/`currency`/`travelerEmail`
+  remain trusted client input, a separate, still-open gap (no
+  authoritative pricing/identity lookup yet) not addressed by this fix.

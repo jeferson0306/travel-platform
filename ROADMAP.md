@@ -58,32 +58,85 @@ tracked as a GitHub Milestone with its own issues. Status: `Planned` →
       `Notification` record. Terminal consumer - no domain events/outbox of
       its own. Idempotent, with the same Mongo-backed retry queue/DLQ shape
       as M10/M11 (ADR 0011).
-- [ ] **M13 — search-service**: OpenSearch-backed autocomplete and geo
-      search.
-- [ ] **M14 — API Gateway**: routing, JWT validation, rate limiting, CORS.
+- [x] **M13 — search-service**: `flight-service`/`hotel-service` publish
+      their first domain events (`flight-created`/`hotel-created`, via the
+      existing generic outbox relay); `search-service` consumes both and
+      indexes into OpenSearch - its only datastore, no MongoDB (ADR 0012).
+      Public route/city search plus prefix autocomplete. True geo search
+      descoped - `City` has no coordinates yet.
+- [x] **M14 — API Gateway**: single entry point fronting all seven backend
+      services, path-prefix routing (no rewriting), JWT fast-fail
+      (signature/expiry only - authorization stays exclusively per-backend,
+      ADR 0013), Redis-backed fixed-window rate limiting, native Quarkus
+      CORS. Closes Phase 3.
 
 ## Phase 4 — Resilience & scale
 
-- [ ] **M15 — Fault tolerance**: circuit breakers, retries, timeouts,
-      bulkheads across all services.
-- [ ] **M16 — Load & chaos testing**: k6/Gatling load profiles, Toxiproxy
-      fault injection, documented failure playbooks.
-- [ ] **M17 — Kubernetes manifests**: deployments, HPA, probes, resource
-      requests/limits (documented as portable target, run locally via kind/
-      minikube).
+- [x] **M15 — Fault tolerance**: applied only where a real synchronous
+      dependency exists - `gateway`→backend (per-backend circuit
+      breaker/timeout/bulkhead via the programmatic SmallRye `Guard` API,
+      retry only for idempotent GET/HEAD) and `search-service`→OpenSearch
+      read queries. Every other service already had its fault-tolerance
+      story since M10 (Mongo-backed retry/DLQ on Kafka consumers) and
+      needed nothing new (ADR 0014).
+- [x] **M16 — Load & chaos testing**: full 8-service stack wired via a
+      docker-compose `apps` profile, k6 load profiles (public search,
+      full booking saga) run against it, Toxiproxy fault injection
+      validating M15's per-backend circuit breaker (isolated failure,
+      automatic recovery), all documented from real measured results,
+      not estimates (ADR 0015).
+- [x] **M17 — Kubernetes manifests**: Kustomize base (Deployments,
+      Services, HPAs, readiness/liveness probes on `/health/ready` and
+      `/health/live`, measured resource requests/limits) + a local overlay,
+      actually deployed and verified end-to-end on a real `kind` cluster -
+      full smoke test through the gateway including a complete booking
+      saga, and HPA observed genuinely scaling under real CPU load. Three
+      real Kubernetes-specific bugs found and fixed by running it
+      (service-link env-var injection, KRaft self-hairpin, probe cost) -
+      ADR 0016. Closes Phase 4.
 
 ## Phase 5 — AI engineering layer
 
-- [ ] **M18 — Repository AI-context layer**: structured `docs/context` and
-      `docs/prompts` so the codebase is consumable by AI agents.
-- [ ] **M19 — Engineering assistants**: docs assistant, code assistant,
-      architecture assistant, deployed as their own service(s).
+- [x] **M18 — Repository AI-context layer**: `docs/context` populated with
+      four curated fact files (platform overview, service catalog, event
+      catalog, conventions), `docs/prompts` with five fill-in task
+      templates encoding the platform's mandatory shapes and reference
+      implementations, and a root `AGENTS.md` entry point - curated
+      Markdown over generated dumps, same accuracy contract as the ADRs
+      (ADR 0017).
+- [x] **M19 — Engineering assistant**: `assistant-service` (ninth backend
+      service, port 8088), hexagonal like every other service, answering
+      questions about this platform grounded in the whole docs/context
+      corpus ("stuff everything" RAG - no vector DB needed at this size).
+      Backed by a local Ollama runtime (free, no paid API - matches this
+      platform's local-first posture), gated behind the gateway like
+      every other segment. Real end-to-end test against the actual model
+      found and fixed a genuine hallucination bug (Ollama's default
+      context window silently truncated the corpus) before the answers
+      were verified correct and cited (ADR 0018). Scoped from three
+      assistants (docs/code/architecture) down to one, and Kubernetes
+      wiring is manifests-only (not live-deployed, unlike M17) - both
+      explicit trade-offs, not omissions.
 
 ## Phase 6 — Production polish
 
-- [ ] **M20 — Public-facing polish**: README diagrams/screenshots, deployed
-      demo (frontend on Vercel, backend on a free-tier host), final
-      CHANGELOG pass.
+- [ ] **M20 — Public-facing polish**: README rewritten with real screenshots
+      (register, search, booking confirmation) from a locally seeded run,
+      minimal companion frontend (register/login/search/book) built and
+      verified against the real stack, ADR 0019 scoping the public backend
+      deployment to the essential booking flow (async saga included,
+      OpenSearch/Ollama excluded - neither fits a free tier), plus a public
+      `/status` dashboard polling every service's real health endpoint
+      live from the browser. **Frontend deployed** (Vercel). **Messaging
+      backbone migrated from Kafka to RabbitMQ** (ADR 0004's 2026-08-05
+      addendum) - the hosting blocker that stalled backend deployment is
+      resolved (CloudAMQP's free tier vs. no free managed Kafka anywhere),
+      verified end-to-end against a real local RabbitMQ (booking → payment
+      → confirmation → inventory decrement → notification email, unmodified
+      behavior). **Backend deployment in progress**: Railway's trial
+      expired before go-live, so hosting is moving to Render + MongoDB
+      Atlas + CloudAMQP - see [docs/deploy/render.md](docs/deploy/render.md)
+      for the exact steps, not yet executed.
 
 Milestones are deliberately small — each should be shippable and reviewable
 in a single pull request or a short stack of PRs.

@@ -1,0 +1,67 @@
+# Resource sizing rationale: see identity-service.yaml / ADR 0016. No idle-memory measurement
+# exists yet for this service specifically (new in M19) - these numbers follow the same JVM-mode
+# shape as every other service here (ADR 0016) rather than a service-specific measurement.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistant-service
+  namespace: travel-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: assistant-service }
+  template:
+    metadata:
+      labels: { app: assistant-service }
+    spec:
+      # See identity-service.yaml / ADR 0016 for why this is set on every app pod.
+      enableServiceLinks: false
+      containers:
+        - name: assistant-service
+          image: travel-platform-assistant-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8088
+          env:
+            - { name: OLLAMA_BASE_URL, value: "http://ollama:11434" }
+          resources:
+            requests: { cpu: 100m, memory: 224Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8088 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8088 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # gateway's GATEWAY_UPSTREAM_ASSISTANT %prod default is http://assistant-service:8088.
+  name: assistant-service
+  namespace: travel-platform
+spec:
+  selector: { app: assistant-service }
+  ports:
+    - port: 8088
+      targetPort: 8088
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: assistant-service
+  namespace: travel-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: assistant-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

@@ -3,6 +3,12 @@ quarkus:
     name: hotel-service
   http:
     port: 8084
+    # CORS is handled solely at the gateway (backend/gateway/src/main/resources/application.yml)
+    # - the only browser-facing surface. Quarkus's declarative CORS here would evaluate the Origin
+    # header the gateway forwards along on every proxied request and reject it with 403 before
+    # this service ever ran the request, since these internal calls aren't real browser requests
+    # (observed directly: it was the actual root cause of a gateway 403 mis-diagnosed as a gateway
+    # bug - each service's own CORS filter, not the gateway, was rejecting the proxied request).
   mongodb:
     database: hotel
   smallrye-openapi:
@@ -18,7 +24,7 @@ quarkus:
     # no collector locally, traceId/spanId still populate the logs.
     traces:
       exporter: none
-  kafka:
+  rabbitmq:
     devservices:
       # See booking-service/src/main/resources/application.yml for the rationale - tests use
       # the in-memory connector (see %test below).
@@ -31,18 +37,29 @@ mp:
       publickey:
         location: publicKey.pem
   messaging:
+    # See booking-service/src/main/resources/application.yml for the exchange/queue topology
+    # rationale (docs/adr/0004-use-kafka-for-event-driven-communication.md's 2026-08-05 addendum).
     incoming:
       booking-created:
-        connector: smallrye-kafka
-        topic: booking-created
-        group.id: hotel-inventory
-        auto.offset.reset: earliest
+        connector: smallrye-rabbitmq
+        exchange:
+          name: booking-events
+        queue:
+          name: booking-created.hotel-inventory
+        routing-keys: booking-created
     outgoing:
       booking-created-dlq:
-        connector: smallrye-kafka
-        topic: booking-created.hotel-inventory.dlq
-        value:
-          serializer: org.apache.kafka.common.serialization.StringSerializer
+        connector: smallrye-rabbitmq
+        exchange:
+          name: ""
+        default-routing-key: booking-created.hotel-inventory.dlq
+      hotel-events:
+        connector: smallrye-rabbitmq
+        exchange:
+          name: hotel-events
+        # Overridden per-message by OutboxRelay (routing key = the event's eventType) - this
+        # default only satisfies config validation and is never actually used.
+        default-routing-key: hotel-events-default
 
 "%dev":
   quarkus:
@@ -67,11 +84,14 @@ mp:
       outgoing:
         booking-created-dlq:
           connector: smallrye-in-memory
+        hotel-events:
+          connector: smallrye-in-memory
 
 "%prod":
   quarkus:
     mongodb:
       connection-string: ${MONGO_URI}
-  kafka:
-    bootstrap:
-      servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT:5672}
+  rabbitmq-username: ${RABBITMQ_USERNAME:guest}
+  rabbitmq-password: ${RABBITMQ_PASSWORD:guest}

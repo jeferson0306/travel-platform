@@ -24,6 +24,7 @@ public final class BookingDocumentMapper {
                 .append("itemType", booking.reference().itemType().name())
                 .append("itemId", booking.reference().itemId())
                 .append("quantity", booking.reference().quantity())
+                .append("itemSummary", booking.reference().itemSummary())
                 .append("amountValue", booking.amount().amount().toPlainString())
                 .append("amountCurrency", booking.amount().currency())
                 .append("status", booking.status().name())
@@ -38,7 +39,8 @@ public final class BookingDocumentMapper {
                 new BookingReference(
                         ItemType.valueOf(document.getString("itemType")),
                         document.getString("itemId"),
-                        document.getInteger("quantity")),
+                        document.getInteger("quantity"),
+                        document.getString("itemSummary")),
                 new Money(
                         new BigDecimal(document.getString("amountValue")),
                         document.getString("amountCurrency")),

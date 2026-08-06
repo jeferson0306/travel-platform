@@ -1,0 +1,14 @@
+# Exposes gateway on a fixed NodePort so `kind`'s extraPortMappings (see
+# infrastructure/kubernetes/kind-cluster.yaml) can forward host:8080 -> this port without needing
+# a LoadBalancer controller or Ingress, neither of which a bare kind cluster has by default.
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: travel-platform
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
